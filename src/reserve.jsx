@@ -193,13 +193,17 @@ function Reserve({ selectedDates, setSelectedDates }) {
     const [birthDateError, setBirthDateError] = useState("");
     const [passwordError, setPasswordError] = useState("");
 
-    // Date range state
-    const defaultStartDate = selectedDates?.startDate || new Date(2025, 8, 17);
-    const defaultEndDate = selectedDates?.endDate || new Date(2025, 8, 23);
+    // Date range state - Set to today and next 4 days
+    const today = new Date();
+    const fourDaysLater = new Date(today);
+    fourDaysLater.setDate(today.getDate() + 4);
+    
+    const defaultStartDate = selectedDates?.startDate || today;
+    const defaultEndDate = selectedDates?.endDate || fourDaysLater;
     
     // Ensure default dates are valid
-    const validStartDate = (defaultStartDate instanceof Date && !isNaN(defaultStartDate)) ? defaultStartDate : new Date(2025, 8, 17);
-    const validEndDate = (defaultEndDate instanceof Date && !isNaN(defaultEndDate)) ? defaultEndDate : new Date(2025, 8, 23);
+    const validStartDate = (defaultStartDate instanceof Date && !isNaN(defaultStartDate)) ? defaultStartDate : today;
+    const validEndDate = (defaultEndDate instanceof Date && !isNaN(defaultEndDate)) ? defaultEndDate : fourDaysLater;
     
     const [range, setRange] = useState([
         {
