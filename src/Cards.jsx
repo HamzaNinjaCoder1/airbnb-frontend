@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import Slider from 'react-slick';
 import axios from 'axios';
+import { UPLOADS_BASE_URL } from './config.js';
 import { Link, useNavigate } from 'react-router-dom';
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
@@ -30,7 +31,7 @@ function Cards() {
   const getHeadings = async () => {
     try {
       setHeadingsLoading(true);
-      const response = await axios.get('http://localhost:5000/api/data/headings/grouped');
+      const response = await axios.get('/api/data/headings/grouped');
 
       if (response.data && Array.isArray(response.data)) {
         const cityHeadings = {};
@@ -52,7 +53,7 @@ function Cards() {
     try {
       setLoading(true);
       setError(null);
-      const url = 'http://localhost:5000/api/data/listing';
+      const url = '/api/data/listing';
       const response = await axios.get(url);
 
       if (response.data && typeof response.data === "object") {
@@ -78,7 +79,7 @@ function Cards() {
     (async () => {
       try {
         if (!isAuthenticated || !user) return;
-        const res = await axios.get(`http://localhost:5000/api/data/wishlist/${user.id}`, { withCredentials: true });
+        const res = await axios.get(`/api/data/wishlist/${user.id}`, { withCredentials: true });
         const data = res.data?.data || [];
         const ids = new Set(data.map((i) => i.listing_id));
         const map = new Map(data.map((i) => [i.listing_id, i.id]));
@@ -212,7 +213,7 @@ function Cards() {
               ]}
             >
               {filteredProducts.map((product) => {
-                const baseUploads = 'http://localhost:5000/uploads/';
+                const baseUploads = UPLOADS_BASE_URL;
                 let imageSrc = "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=2070&q=80";
                 const first = Array.isArray(product?.images) ? product.images[0] : null;
                 if (first) {
@@ -271,7 +272,7 @@ function Cards() {
                               if (!wishlistId) return;
                               (async () => {
                                 try {
-                                  await axios.delete(`http://localhost:5000/api/data/wishlist/remove/${wishlistId}`, { withCredentials: true });
+                                  await axios.delete(`/api/data/wishlist/remove/${wishlistId}`, { withCredentials: true });
                                   setSavedIds((prev) => {
                                     const n = new Set(prev);
                                     n.delete(product.id);
@@ -389,7 +390,7 @@ function Cards() {
                           navigate('/auth', { replace: true });
                           return;
                         }
-                        const res = await axios.post('http://localhost:5000/api/data/wishlist/add', {
+                        const res = await axios.post('/api/data/wishlist/add', {
                           user_id: user?.id,
                           listing_id: selectedListing.id,
                         }, { withCredentials: true });

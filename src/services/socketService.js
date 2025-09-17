@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client';
+import { SOCKET_URL } from '../config.js';
 
 class SocketService {
   constructor() {
@@ -12,7 +13,7 @@ class SocketService {
       return this.socket;
     }
 
-    this.socket = io('http://localhost:5000', {
+    this.socket = io(SOCKET_URL, {
       withCredentials: true,
       transports: ['websocket', 'polling']
     });

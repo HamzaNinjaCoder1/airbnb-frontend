@@ -4,6 +4,7 @@ import HostDialog from './HostDialog';
 import ListingHader from './ListingHader';
 import Footer from './Footer';
 import axios from 'axios';
+import { UPLOADS_BASE_URL } from './config.js';
 
 const STATUS_META = {
   published: { label: 'Published', dot: 'bg-green-500' },
@@ -56,14 +57,14 @@ const ListingCard = ({ image, title, city, state, province, country, status, onC
     
     // If it's a filename, construct the full URL
     if (typeof imageData === 'string') {
-      return `http://localhost:5000/uploads/${imageData}`;
+      return `${UPLOADS_BASE_URL}${imageData}`;
     }
     
     // If it's an array, get the first image
     if (Array.isArray(imageData) && imageData.length > 0) {
       const firstImage = imageData[0];
       if (typeof firstImage === 'string') {
-        return firstImage.startsWith('http') ? firstImage : `http://localhost:5000/uploads/${firstImage}`;
+        return firstImage.startsWith('http') ? firstImage : `${UPLOADS_BASE_URL}${firstImage}`;
       }
     }
     
@@ -227,7 +228,7 @@ const Listings = () => {
       const hostId = listingToDelete.host_id || hostIdFromParams || searchParams.get('hostId') || 1;
       const listingId = listingToDelete.id || listingToDelete.listing_id;
       
-      const response = await axios.delete(`http://localhost:5000/api/data/listings/deletelisting?listingId=${listingId}&hostId=${hostId}`);
+      const response = await axios.delete(`/api/data/listings/deletelisting?listingId=${listingId}&hostId=${hostId}`);
       
       if (response.status === 200) {
         setItems(prevItems => prevItems.filter(item => 
@@ -300,7 +301,7 @@ const Listings = () => {
     const fetchListings = async () => {
       try {
         const hostId = hostIdFromParams || searchParams.get('hostId') || 1;
-        const res = await axios.get(`http://localhost:5000/api/data/listings/HostListingImages?hostId=${hostId}`);
+        const res = await axios.get(`/api/data/listings/HostListingImages?hostId=${hostId}`);
         
         console.log('Listings API Response:', res.data);
         
@@ -400,7 +401,7 @@ const Listings = () => {
                     <div className="w-16 h-16 rounded-xl bg-gray-200 overflow-hidden flex items-center justify-center">
                       {l.images && l.images.length > 0 ? (
                         <img
-                          src={l.images[0].startsWith('http') ? l.images[0] : `http://localhost:5000/uploads/${l.images[0]}`}
+                          src={l.images[0].startsWith('http') ? l.images[0] : `${UPLOADS_BASE_URL}${l.images[0]}`}
                           alt={l.title || 'Listing image'}
                           className="w-full h-full object-cover"
                           onError={(e) => {

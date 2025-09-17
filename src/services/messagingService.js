@@ -1,10 +1,9 @@
 import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:5000/api/data';
+import { API_BASE_URL } from '../config.js';
 
 class MessagingService {
   constructor() {
-    this.baseURL = API_BASE_URL;
+    this.baseURL = `${API_BASE_URL}/api/data`;
   }
 
   // Get all conversations for a user

@@ -1,6 +1,5 @@
 import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:5000/api/data';
+import { API_BASE_URL } from '../config.js';
 
 /**
  * Check if a host ID exists in the listings
@@ -11,7 +10,7 @@ export const checkHostListing = async (hostId) => {
   try {
     console.log(`Checking if host ID ${hostId} exists in listings...`);
     
-    const response = await axios.post(`${API_BASE_URL}/host/listing`, {}, {
+    const response = await axios.post(`${API_BASE_URL}/api/data/host/listing`, {}, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}` // Assuming token is stored in localStorage
       }
@@ -52,7 +51,7 @@ export const getHostListings = async (hostId) => {
   try {
     console.log(`Getting listings for host ID ${hostId}...`);
     
-    const response = await axios.get(`${API_BASE_URL}/listings/HostListingImages?hostId=${hostId}`);
+    const response = await axios.get(`${API_BASE_URL}/api/data/listings/HostListingImages?hostId=${hostId}`);
 
     console.log('Host listings response:', response.data);
 
