@@ -461,14 +461,42 @@ function Reserve({ selectedDates, setSelectedDates }) {
 
         setIsBooking(true);
         try {
-            // Prepare booking data with URL listing ID and database values
+            // Normalize dates to avoid past/UTC off-by-one issues
+            const toLocalISODate = (dateObj) => {
+                const yr = dateObj.getFullYear();
+                const mo = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const da = String(dateObj.getDate()).padStart(2, '0');
+                return `${yr}-${mo}-${da}`;
+            };
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            let checkIn = new Date(selectedDatesFromState.startDate);
+            let checkOut = new Date(selectedDatesFromState.endDate);
+
+            if (checkIn < today) {
+                checkIn = new Date(today);
+                checkIn.setDate(checkIn.getDate() + 1);
+            }
+            if (checkOut <= checkIn) {
+                checkOut = new Date(checkIn);
+                checkOut.setDate(checkOut.getDate() + 1);
+            }
+
+            const msPerDay = 24 * 60 * 60 * 1000;
+            const nights = Math.max(1, Math.round((checkOut - checkIn) / msPerDay));
+            const nightly = (data.pricePerNight || data.price || 150);
+            const subtotal = nights * nightly;
+            const fees = Math.round(subtotal * 0.1);
+
+            // Prepare booking data with URL listing ID and normalized values
             const bookingData = {
                 listing_id: urlListingId, // Use URL parameter instead of data.id
-                check_in_date: selectedDatesFromState.startDate.toISOString().split('T')[0],
-                check_out_date: selectedDatesFromState.endDate.toISOString().split('T')[0],
+                check_in_date: toLocalISODate(checkIn),
+                check_out_date: toLocalISODate(checkOut),
                 guests: guestDataFromState.adults + guestDataFromState.children,
-                total_price: selectedDatesFromState.nights * (data.pricePerNight || data.price || 150) + 
-                           Math.round((selectedDatesFromState.nights * (data.pricePerNight || data.price || 150)) * 0.1)
+                total_price: subtotal + fees
             };
 
             console.log('Booking with URL listing ID:', {
