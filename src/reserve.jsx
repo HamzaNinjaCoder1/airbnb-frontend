@@ -523,6 +523,32 @@ function Reserve({ selectedDates, setSelectedDates }) {
             );
 
             if (response.data.success) {
+                // Send booking notification message to host
+                try {
+                    const bookingMessage = {
+                        conversation_id: response.data.conversation_id || null, // Use conversation ID from booking response
+                        sender_id: user.id,
+                        receiver_id: data.host_id,
+                        message_text: `A new booking has been made for your listing "${data.title}".`,
+                        message_type: 'booking_notification',
+                        listing_id: urlListingId,
+                        listing_title: data.title,
+                        listing_image: data.image
+                    };
+
+                    // Send the booking notification message
+                    const messageResponse = await api.post(
+                        '/api/data/messages/send-message',
+                        bookingMessage,
+                        { withCredentials: true }
+                    );
+
+                    console.log('Booking notification sent:', messageResponse.data);
+                } catch (messageError) {
+                    console.error('Failed to send booking notification:', messageError);
+                    // Don't fail the booking if message sending fails
+                }
+
                 // Show success message
                 alert('Booking confirmed! You will be redirected to messages to chat with your host.');
                 

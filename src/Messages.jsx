@@ -42,6 +42,66 @@ const TypingIndicator = ({ isTyping }) => {
 	);
 };
 
+// Booking Notification Component
+const BookingNotification = ({ message, fromMe }) => {
+	const isBookingNotification = message.message_type === 'booking_notification';
+	
+	if (!isBookingNotification) return null;
+	
+	return (
+		<div className={`flex ${fromMe ? 'justify-end' : 'justify-start'} group`}>
+			<div className={`relative max-w-[75%] ${fromMe ? 'ml-16' : 'mr-16'}`}>
+				{/* Booking notification bubble */}
+				<div className={`${fromMe ? 'bg-black text-white' : 'bg-white text-gray-900 border border-gray-200'} px-4 py-3 rounded-2xl shadow-sm relative`}>
+					{/* Booking notification content */}
+					<div className="flex items-start gap-3">
+						{/* Listing image */}
+						{message.listing_image && (
+							<div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+								<img
+									src={message.listing_image}
+									alt={message.listing_title || 'Listing'}
+									className="w-full h-full object-cover"
+									onError={(e) => {
+										e.target.style.display = 'none';
+									}}
+								/>
+							</div>
+						)}
+						{/* Message content */}
+						<div className="flex-1 min-w-0">
+							<p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+								{message.message_text}
+							</p>
+							{/* Listing title */}
+							{message.listing_title && (
+								<div className={`mt-2 text-xs font-medium ${fromMe ? 'text-gray-300' : 'text-gray-600'}`}>
+									{message.listing_title}
+								</div>
+							)}
+						</div>
+					</div>
+					{/* Timestamp and status */}
+					<div className={`flex items-center justify-end gap-2 mt-2 ${fromMe ? 'text-gray-300' : 'text-gray-400'}`}>
+						<span className="text-xs font-medium">{formatTime(message.created_at)}</span>
+						<MessageStatus status={message.status} fromMe={fromMe} />
+					</div>
+				</div>
+				{/* Speech bubble tail */}
+				<div className={`absolute ${fromMe ? 'right-[-6px] top-4' : 'left-[-6px] top-4'}`}>
+					<div className={`w-0 h-0 ${fromMe ? 'border-l-[6px] border-l-black border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent' : 'border-r-[6px] border-r-white border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent'}`}></div>
+				</div>
+				{/* Border tail for received messages */}
+				{!fromMe && (
+					<div className="absolute left-[-7px] top-4">
+						<div className="w-0 h-0 border-r-[7px] border-r-gray-200 border-t-[7px] border-t-transparent border-b-[7px] border-b-transparent"></div>
+					</div>
+				)}
+			</div>
+		</div>
+	);
+};
+
 function Messages() {
 	const navigate = useNavigate()
 	const location = useLocation()
@@ -597,6 +657,19 @@ function Messages() {
 								) : (
 									messages.map((m, i) => {
 										const fromMe = isMessageFromMe(m)
+										
+										// Check if this is a booking notification
+										if (m.message_type === 'booking_notification') {
+											return (
+												<BookingNotification 
+													key={`${m.id}-${m.created_at}-${i}`}
+													message={m} 
+													fromMe={fromMe} 
+												/>
+											)
+										}
+										
+										// Regular message
 										return (
 											<div key={`${m.id}-${m.created_at}-${i}`} className={`flex ${fromMe ? 'justify-end' : 'justify-start'} group`}>
 												<div className={`relative max-w-[75%] ${fromMe ? 'ml-16' : 'mr-16'}`}>
@@ -828,6 +901,19 @@ function Messages() {
 									) : (
 										messages.map((m, i) => {
 											const fromMe = isMessageFromMe(m)
+											
+											// Check if this is a booking notification
+											if (m.message_type === 'booking_notification') {
+												return (
+													<BookingNotification 
+														key={`${m.id}-${m.created_at}-${i}`}
+														message={m} 
+														fromMe={fromMe} 
+													/>
+												)
+											}
+											
+											// Regular message
 											return (
 												<div key={`${m.id}-${m.created_at}-${i}`} className={`flex ${fromMe ? 'justify-end' : 'justify-start'} group`}>
 													<div className={`relative max-w-[85%] ${fromMe ? 'ml-12' : 'mr-12'}`}>
