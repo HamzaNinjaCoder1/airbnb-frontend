@@ -532,21 +532,31 @@ function Reserve({ selectedDates, setSelectedDates }) {
                         listing_id: urlListingId
                     });
 
-                    const bookingMessage = {
-                        conversation_id: response.data.conversation_id || null, // Use conversation ID from booking response
+                    // Create a special message format that includes image data
+                    const bookingMessageText = `A new booking has been made for your listing "${data.title}".`;
+                    const bookingMessageData = {
+                        conversation_id: response.data.conversation_id || null,
                         sender_id: user.id,
                         receiver_id: data.host_id,
-                        message_text: `A new booking has been made for your listing "${data.title}".`,
-                        message_type: 'booking_notification',
-                        listing_id: urlListingId,
-                        listing_title: data.title,
-                        listing_image: data.image
+                        message_text: bookingMessageText,
+                        // Store additional data in a special format that can be parsed
+                        metadata: JSON.stringify({
+                            type: 'booking_notification',
+                            listing_id: urlListingId,
+                            listing_title: data.title,
+                            listing_image: data.image
+                        })
                     };
+
+                    // Also try storing image data in a comment-like format in the message
+                    // This is a fallback in case metadata doesn't work
+                    const messageWithImageData = `${bookingMessageText} <!-- IMAGE_DATA:${data.image} -->`;
+                    bookingMessageData.message_text = messageWithImageData;
 
                     // Send the booking notification message
                     const messageResponse = await api.post(
                         '/api/data/messages/send-message',
-                        bookingMessage,
+                        bookingMessageData,
                         { withCredentials: true }
                     );
 

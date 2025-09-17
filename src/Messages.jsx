@@ -44,16 +44,49 @@ const TypingIndicator = ({ isTyping }) => {
 
 // Booking Notification Component
 const BookingNotification = ({ message, fromMe }) => {
-	const isBookingNotification = message.message_type === 'booking_notification';
+	// Check if this is a booking notification by looking for the specific message pattern
+	const isBookingNotification = message.message_text && 
+		message.message_text.includes('A new booking has been made for your listing');
 	
 	if (!isBookingNotification) return null;
 	
+	// Parse metadata if available
+	let metadata = null;
+	if (message.metadata) {
+		try {
+			metadata = JSON.parse(message.metadata);
+		} catch (e) {
+			console.log('Failed to parse metadata:', e);
+		}
+	}
+	
+	// Extract listing info from metadata or message
+	const listingTitle = metadata?.listing_title || 
+		(message.message_text.match(/"([^"]+)"/)?.[1]) || 
+		'Unknown Listing';
+	
+	// Try to get image from metadata first, then from message text
+	let listingImage = metadata?.listing_image || null;
+	
+	// Fallback: try to extract image from message text comment
+	if (!listingImage && message.message_text.includes('<!-- IMAGE_DATA:')) {
+		const imageMatch = message.message_text.match(/<!-- IMAGE_DATA:([^>]+) -->/);
+		if (imageMatch) {
+			listingImage = imageMatch[1];
+		}
+	}
+	
+	// Clean up the message text to remove the image data comment
+	const cleanMessageText = message.message_text.replace(/<!-- IMAGE_DATA:[^>]+ -->/, '').trim();
+	
 	// Debug logging
 	console.log('Rendering booking notification:', {
-		message_type: message.message_type,
-		listing_title: message.listing_title,
-		listing_image: message.listing_image,
-		message_text: message.message_text
+		original_message_text: message.message_text,
+		clean_message_text: cleanMessageText,
+		metadata: metadata,
+		listing_title: listingTitle,
+		listing_image: listingImage,
+		has_image: !!listingImage
 	});
 	
 	return (
@@ -65,13 +98,13 @@ const BookingNotification = ({ message, fromMe }) => {
 					<div className="flex items-start gap-3">
 						{/* Listing image - always show placeholder or image */}
 						<div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-200 flex items-center justify-center">
-							{message.listing_image ? (
+							{listingImage ? (
 								<img
-									src={message.listing_image}
-									alt={message.listing_title || 'Listing'}
+									src={listingImage}
+									alt={listingTitle || 'Listing'}
 									className="w-full h-full object-cover"
 									onError={(e) => {
-										console.log('Image failed to load:', message.listing_image);
+										console.log('Image failed to load:', listingImage);
 										e.target.style.display = 'none';
 										e.target.nextSibling.style.display = 'flex';
 									}}
@@ -80,7 +113,7 @@ const BookingNotification = ({ message, fromMe }) => {
 							{/* Fallback when no image or image fails to load */}
 							<div 
 								className="w-full h-full flex items-center justify-center text-xs"
-								style={{ display: message.listing_image ? 'none' : 'flex' }}
+								style={{ display: listingImage ? 'none' : 'flex' }}
 							>
 								🏠
 							</div>
@@ -88,12 +121,12 @@ const BookingNotification = ({ message, fromMe }) => {
 						{/* Message content */}
 						<div className="flex-1 min-w-0">
 							<p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-								{message.message_text}
+								{cleanMessageText}
 							</p>
 							{/* Listing title */}
-							{message.listing_title && (
+							{listingTitle && (
 								<div className={`mt-2 text-xs font-medium ${fromMe ? 'text-gray-300' : 'text-gray-600'}`}>
-									{message.listing_title}
+									{listingTitle}
 								</div>
 							)}
 						</div>
@@ -676,7 +709,7 @@ function Messages() {
 										const fromMe = isMessageFromMe(m)
 										
 										// Check if this is a booking notification
-										if (m.message_type === 'booking_notification') {
+										if (m.message_text && m.message_text.includes('A new booking has been made for your listing')) {
 											console.log('Found booking notification message:', m);
 											return (
 												<BookingNotification 
@@ -921,7 +954,7 @@ function Messages() {
 											const fromMe = isMessageFromMe(m)
 											
 											// Check if this is a booking notification
-											if (m.message_type === 'booking_notification') {
+											if (m.message_text && m.message_text.includes('A new booking has been made for your listing')) {
 												console.log('Found booking notification message (mobile):', m);
 												return (
 													<BookingNotification 
