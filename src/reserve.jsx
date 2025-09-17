@@ -277,8 +277,13 @@ function Reserve({ selectedDates, setSelectedDates }) {
                 setLoading(true);
                 setError(null);
                 
+                console.log('Starting data fetch...');
+                console.log('Product data from state:', productDataFromState);
+                console.log('URL params:', params);
+                
                 // Priority 1: Use product data passed from ProductsDetails
                 if (productDataFromState) {
+                    console.log('Using product data from state');
                     
                     // Map the product data to the expected format
                     const mappedData = {
@@ -300,14 +305,63 @@ function Reserve({ selectedDates, setSelectedDates }) {
                         HostImage: productDataFromState.HostImage || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80'
                     };
                     
+                    console.log('Mapped data from state:', mappedData);
                     setData(mappedData);
                     setLoading(false);
                     return;
                 }
                 
-                // Priority 2: Try to fetch from database
+                // Priority 2: Try to fetch from database using URL parameter
+                if (params.id) {
+                    try {
+                        console.log('Fetching listing from database with ID:', params.id);
+                        const response = await api.get(`/api/data/listing/${params.id}`);
+                        
+                        console.log('Database response:', response.data);
+                        
+                        if (response.data && response.data.id) {
+                            const listing = response.data;
+                            
+                            // Get the first image from the images relation, or use fallback
+                            const firstImage = listing.images && listing.images.length > 0 
+                                ? (listing.images[0].image_url.startsWith('http') 
+                                    ? listing.images[0].image_url 
+                                    : `https://dynamic-tranquility-production.up.railway.app/uploads/${listing.images[0].image_url}`)
+                                : 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80';
+                            
+                            const databaseData = {
+                                id: listing.id,
+                                title: listing.title || 'Apartment',
+                                pricePerNight: listing.price_per_night || 150,
+                                city: listing.city || 'Islamabad',
+                                rating: listing.rating || 4.5,
+                                reviews: listing.reviews_count || 128,
+                                image: firstImage,
+                                images: listing.images || [],
+                                host_id: listing.host_id,
+                                isDatabaseListing: true,
+                                HostName: listing.host_name || 'Danyal',
+                                HostImage: listing.host_image || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80'
+                            };
+                            
+                            console.log('Loaded database listing:', databaseData);
+                            setData(databaseData);
+                            setLoading(false);
+                            return; // Successfully loaded from database
+                        }
+                    } catch (dbError) {
+                        console.error('Database fetch error:', dbError);
+                        console.error('Error response:', dbError.response?.data);
+                        console.error('Error status:', dbError.response?.status);
+                    }
+                }
+                
+                // Priority 3: Try to fetch all listings from database
                 try {
+                    console.log('Fetching all listings from database...');
                     const response = await api.get('/api/data/listing');
+                    
+                    console.log('All listings response:', response.data);
                     
                     // Handle both array and grouped object responses from backend
                     let listings = [];
@@ -331,7 +385,7 @@ function Reserve({ selectedDates, setSelectedDates }) {
                                 : `https://dynamic-tranquility-production.up.railway.app/uploads/${firstListing.images[0].image_url}`)
                             : 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80';
                         
-                        setData({
+                        const databaseData = {
                             id: firstListing.id,
                             title: firstListing.title || 'Apartment',
                             pricePerNight: firstListing.price_per_night || 150,
@@ -339,22 +393,26 @@ function Reserve({ selectedDates, setSelectedDates }) {
                             rating: firstListing.rating || 4.5,
                             reviews: firstListing.reviews_count || 128,
                             image: firstImage,
+                            images: firstListing.images || [],
                             host_id: firstListing.host_id,
                             isDatabaseListing: true,
                             HostName: firstListing.host_name || 'Danyal',
                             HostImage: firstListing.host_image || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80'
-                        });
-                        console.log('Loaded database listing:', {
-                            id: firstListing.id,
-                            host_id: firstListing.host_id,
-                            title: firstListing.title
-                        });
+                        };
+                        
+                        console.log('Loaded database listing from all listings:', databaseData);
+                        setData(databaseData);
+                        setLoading(false);
                         return; // Successfully loaded from database
                     }
                 } catch (dbError) {
+                    console.error('All listings fetch error:', dbError);
+                    console.error('Error response:', dbError.response?.data);
+                    console.error('Error status:', dbError.response?.status);
                 }
                 
-                // Priority 3: Fallback to static data from data.js
+                // Priority 4: Fallback to static data from data.js
+                console.log('Falling back to static data...');
                 const allStaticListings = [...Islamabad, ...Rawalpindi];
                 if (allStaticListings.length > 0) {
                     const staticListing = allStaticListings[0];
@@ -410,7 +468,7 @@ function Reserve({ selectedDates, setSelectedDates }) {
         };
 
         fetchData();
-    }, [productDataFromState]);
+    }, [productDataFromState, params.id]);
 
     useEffect(() => {
         if (successMessage) {
@@ -422,11 +480,20 @@ function Reserve({ selectedDates, setSelectedDates }) {
     // Functions
     const sendBookingNotification = async (listingData, bookingData) => {
         try {
+            // Get the correct image from database or fallback
+            const notificationImage = listingData.images && listingData.images.length > 0 
+                ? (listingData.images[0].image_url ? 
+                    (listingData.images[0].image_url.startsWith('http') 
+                        ? listingData.images[0].image_url 
+                        : `https://dynamic-tranquility-production.up.railway.app/uploads/${listingData.images[0].image_url}`)
+                    : listingData.image)
+                : listingData.image || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80';
+
             // Send push notification to host
             const notificationData = {
                 title: "New Booking Confirmed!",
                 body: `A new booking has been made for your listing "${listingData.title}".`,
-                image: listingData.images?.[0] || listingData.image,
+                image: notificationImage,
                 icon: "/icons/booking-icon.png",
                 badge: "/icons/badge-icon.png",
                 tag: `booking-${bookingData.listing_id}`,
@@ -435,7 +502,7 @@ function Reserve({ selectedDates, setSelectedDates }) {
                     type: 'booking_confirmation',
                     listing_id: listingData.id,
                     listing_title: listingData.title,
-                    listing_image: listingData.images?.[0] || listingData.image,
+                    listing_image: notificationImage,
                     host_id: listingData.host_id,
                     booking_id: bookingData.listing_id,
                     check_in: bookingData.check_in_date,
@@ -575,19 +642,34 @@ function Reserve({ selectedDates, setSelectedDates }) {
                 // Show success message
                 alert('Booking confirmed! You will be redirected to messages to chat with your host.');
                 
+                // Debug: Log the data being passed
+                console.log('Data object for booking notification:', data);
+                console.log('Booking data:', bookingData);
+                
                 // Navigate to messages page with listing data
+                const bookingNotificationData = {
+                    type: 'booking_confirmed',
+                    listing: {
+                        id: data.id,
+                        title: data.title || 'Unknown Listing',
+                        image: data.images && data.images.length > 0 
+                            ? (data.images[0].image_url ? 
+                                (data.images[0].image_url.startsWith('http') 
+                                    ? data.images[0].image_url 
+                                    : `https://dynamic-tranquility-production.up.railway.app/uploads/${data.images[0].image_url}`)
+                                : data.image)
+                            : data.image || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
+                        host_id: data.host_id,
+                        isDatabaseListing: data.isDatabaseListing
+                    },
+                    booking: bookingData
+                };
+                
+                console.log('Booking notification data:', bookingNotificationData);
+                
                 navigate('/messages', { 
                     state: { 
-                        bookingNotification: {
-                            type: 'booking_confirmed',
-                            listing: {
-                                id: data.id,
-                                title: data.title,
-                                image: data.images?.[0] || data.image,
-                                host_id: data.host_id
-                            },
-                            booking: bookingData
-                        }
+                        bookingNotification: bookingNotificationData
                     } 
                 });
             } else {
@@ -606,9 +688,13 @@ function Reserve({ selectedDates, setSelectedDates }) {
             setLoading(true);
             setError(null);
             
+            console.log('Fetching data for city:', city);
+            
             // Try to fetch from database first
             try {
                 const response = await api.get(`/api/data/listing?city=${encodeURIComponent(city)}`);
+                
+                console.log('City listings response:', response.data);
                 
                 // Handle both array and grouped object responses from backend
                 let listings = [];
@@ -632,8 +718,7 @@ function Reserve({ selectedDates, setSelectedDates }) {
                             : `https://dynamic-tranquility-production.up.railway.app/uploads/${listing.images[0].image_url}`)
                         : 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80';
                     
-                    
-                    setData({
+                    const databaseData = {
                         id: listing.id,
                         title: listing.title || 'Apartment',
                         pricePerNight: listing.price_per_night || 150,
@@ -641,23 +726,26 @@ function Reserve({ selectedDates, setSelectedDates }) {
                         rating: listing.rating || 4.5,
                         reviews: listing.reviews_count || 128,
                         image: firstImage,
+                        images: listing.images || [],
                         host_id: listing.host_id,
                         isDatabaseListing: true,
                         HostName: listing.host_name || 'Danyal',
                         HostImage: listing.host_image || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80'
-                    });
-                    console.log('Loaded database listing by city:', {
-                        id: listing.id,
-                        host_id: listing.host_id,
-                        title: listing.title,
-                        city: listing.city
-                    });
+                    };
+                    
+                    console.log('Loaded database listing by city:', databaseData);
+                    setData(databaseData);
+                    setLoading(false);
                     return; // Successfully loaded from database
                 }
             } catch (dbError) {
+                console.error('Database fetch error for city:', dbError);
+                console.error('Error response:', dbError.response?.data);
+                console.error('Error status:', dbError.response?.status);
             }
             
             // Fallback to static data from data.js
+            console.log('Falling back to static data for city:', city);
             const allStaticListings = [...Islamabad, ...Rawalpindi];
             const cityListings = allStaticListings.filter(listing => 
                 listing.city && listing.city.toLowerCase() === city.toLowerCase()
@@ -675,6 +763,7 @@ function Reserve({ selectedDates, setSelectedDates }) {
                     reviews: staticListing.reviews || 128,
                     image: staticListing.image || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
                     host_id: staticListing.host_id || 1,
+                    isDatabaseListing: false,
                     HostName: staticListing.HostName || 'Danyal',
                     HostImage: staticListing.HostImage || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80'
                 });

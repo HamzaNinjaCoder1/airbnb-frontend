@@ -35,12 +35,36 @@ class MessagingService {
   // Send a message
   async sendMessage(messageData) {
     try {
-      const response = await api.post(`${this.baseURL}/messages/send-message`, messageData, {
-        withCredentials: true
+      // Ensure all required fields are present and properly typed
+      const payload = {
+        message: String(messageData.message || ''),
+        conversation_id: Number(messageData.conversation_id),
+        receiver_id: Number(messageData.receiver_id),
+        ...(messageData.client_temp_id && { client_temp_id: messageData.client_temp_id })
+      };
+
+      // Validate required fields
+      if (!payload.message || !payload.conversation_id || !payload.receiver_id) {
+        throw new Error('Missing required fields: message, conversation_id, and receiver_id are required');
+      }
+
+      // Log the payload for debugging
+      console.log('Sending message with payload:', payload);
+      console.log('API endpoint:', `${this.baseURL}/messages/send-message`);
+
+      const response = await api.post(`${this.baseURL}/messages/send-message`, payload, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
+      
+      console.log('Message sent successfully:', response.data);
       return response.data;
     } catch (error) {
       console.error('Error sending message:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
       throw error;
     }
   }

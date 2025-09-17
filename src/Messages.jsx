@@ -48,14 +48,21 @@ const BookingNotification = ({ notification, onDismiss }) => {
 	
 	const { listing, booking } = notification;
 	
+	// Debug: Log the notification data
+	console.log('BookingNotification rendering with:', { notification, listing, booking });
+	
 	return (
 		<div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-xl shadow-sm">
 			<div className="flex items-start gap-4">
-				{listing.image && (
+				{listing?.image && (
 					<img 
 						src={listing.image} 
-						alt={listing.title}
+						alt={listing.title || 'Listing'}
 						className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+						onError={(e) => {
+							console.log('Image failed to load:', listing.image);
+							e.target.style.display = 'none';
+						}}
 					/>
 				)}
 				<div className="flex-1 min-w-0">
@@ -64,7 +71,7 @@ const BookingNotification = ({ notification, onDismiss }) => {
 						<h3 className="text-sm font-semibold text-green-800">Booking Confirmed!</h3>
 					</div>
 					<p className="text-sm text-gray-700 mb-2">
-						A new booking has been made for your listing <span className="font-semibold">"{listing.title}"</span>.
+						A new booking has been made for your listing <span className="font-semibold">"{listing?.title || 'Unknown Listing'}"</span>.
 					</p>
 					{booking && (
 						<div className="text-xs text-gray-600 space-y-1">
@@ -124,7 +131,26 @@ function Messages() {
 	// Handle booking notification from location state
 	useEffect(() => {
 		if (location.state?.bookingNotification) {
-			setBookingNotification(location.state.bookingNotification)
+			console.log('Received booking notification:', location.state.bookingNotification);
+			
+			// Ensure the notification has the correct structure
+			const notification = location.state.bookingNotification;
+			if (notification.type === 'booking_confirmed') {
+				// Ensure listing data is properly structured
+				const processedNotification = {
+					...notification,
+					listing: {
+						id: notification.listing?.id || 'unknown',
+						title: notification.listing?.title || 'Unknown Listing',
+						image: notification.listing?.image || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
+						host_id: notification.listing?.host_id || 'unknown'
+					}
+				};
+				
+				console.log('Processed booking notification:', processedNotification);
+				setBookingNotification(processedNotification);
+			}
+			
 			// Clear the state to prevent showing again on refresh
 			window.history.replaceState({}, document.title)
 		}
@@ -464,6 +490,26 @@ function Messages() {
 		setBookingNotification(null)
 	}
 
+	// Test function to manually trigger booking notification (for debugging)
+	const testBookingNotification = () => {
+		const testNotification = {
+			type: 'booking_confirmed',
+			listing: {
+				id: 'test-123',
+				title: 'Cabin in Lahore',
+				image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
+				host_id: 'test-host'
+			},
+			booking: {
+				check_in_date: '2024-01-15',
+				check_out_date: '2024-01-17',
+				guests: 2,
+				total_price: 300
+			}
+		};
+		setBookingNotification(testNotification);
+	}
+
 	// Show loading or error states
 	if (loading && conversations.length === 0) {
 		return (
@@ -512,6 +558,13 @@ function Messages() {
 						<div className="px-6 py-4 border-b border-gray-200 bg-white">
 							<div className="flex items-center justify-between mb-3">
 								<h1 className="text-xl font-bold text-gray-900">Messages</h1>
+								{/* Test button for debugging - remove in production */}
+								<button 
+									onClick={testBookingNotification}
+									className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+								>
+									Test Notification
+								</button>
 							</div>
 							<div className="relative">
 								<input
@@ -754,6 +807,13 @@ function Messages() {
 							<div className="px-4 py-4 border-b border-gray-200 bg-white">
 								<div className="flex items-center justify-between mb-3">
 									<h1 className="text-xl font-bold text-gray-900">Messages</h1>
+									{/* Test button for debugging - remove in production */}
+									<button 
+										onClick={testBookingNotification}
+										className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+									>
+										Test
+									</button>
 								</div>
 								<div className="relative">
 									<input
