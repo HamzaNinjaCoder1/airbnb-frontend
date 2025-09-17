@@ -288,7 +288,7 @@ function Reserve({ selectedDates, setSelectedDates }) {
                         image: productDataFromState.img1 
                             ? (productDataFromState.img1.startsWith('http') 
                                 ? productDataFromState.img1 
-                                : `http://localhost:5000/uploads/${productDataFromState.img1}`)
+                                : `https://dynamic-tranquility-production.up.railway.app/uploads/${productDataFromState.img1}`)
                             : productDataFromState.image || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
                         host_id: productDataFromState.host_id,
                         isDatabaseListing: Boolean(productDataFromState.host_id && productDataFromState.host_id > 1),
@@ -322,7 +322,9 @@ function Reserve({ selectedDates, setSelectedDates }) {
                         
                         // Get the first image from the images relation, or use fallback
                         const firstImage = firstListing.images && firstListing.images.length > 0 
-                            ? firstListing.images[0].image_url 
+                            ? (firstListing.images[0].image_url.startsWith('http') 
+                                ? firstListing.images[0].image_url 
+                                : `https://dynamic-tranquility-production.up.railway.app/uploads/${firstListing.images[0].image_url}`)
                             : 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80';
                         
                         setData({
@@ -531,7 +533,9 @@ function Reserve({ selectedDates, setSelectedDates }) {
                     
                     // Get the first image from the images relation, or use fallback
                     const firstImage = listing.images && listing.images.length > 0 
-                        ? listing.images[0].image_url 
+                        ? (listing.images[0].image_url.startsWith('http') 
+                            ? listing.images[0].image_url 
+                            : `https://dynamic-tranquility-production.up.railway.app/uploads/${listing.images[0].image_url}`)
                         : 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80';
                     
                     
@@ -782,7 +786,9 @@ function Reserve({ selectedDates, setSelectedDates }) {
                                                 
                                                 // Get the first image from the images relation, or use fallback
                                                 const firstImage = firstListing.images && firstListing.images.length > 0 
-                                                    ? firstListing.images[0].image_url 
+                                                    ? (firstListing.images[0].image_url.startsWith('http') 
+                                                        ? firstListing.images[0].image_url 
+                                                        : `https://dynamic-tranquility-production.up.railway.app/uploads/${firstListing.images[0].image_url}`)
                                                     : 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80';
                                                 
                                                 
