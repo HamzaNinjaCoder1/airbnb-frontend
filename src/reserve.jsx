@@ -525,6 +525,13 @@ function Reserve({ selectedDates, setSelectedDates }) {
             if (response.data.success) {
                 // Send booking notification message to host
                 try {
+                    console.log('Sending booking notification with data:', {
+                        title: data.title,
+                        image: data.image,
+                        host_id: data.host_id,
+                        listing_id: urlListingId
+                    });
+
                     const bookingMessage = {
                         conversation_id: response.data.conversation_id || null, // Use conversation ID from booking response
                         sender_id: user.id,
@@ -543,7 +550,7 @@ function Reserve({ selectedDates, setSelectedDates }) {
                         { withCredentials: true }
                     );
 
-                    console.log('Booking notification sent:', messageResponse.data);
+                    console.log('Booking notification sent successfully:', messageResponse.data);
                 } catch (messageError) {
                     console.error('Failed to send booking notification:', messageError);
                     // Don't fail the booking if message sending fails

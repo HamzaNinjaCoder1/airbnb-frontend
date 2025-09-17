@@ -48,6 +48,14 @@ const BookingNotification = ({ message, fromMe }) => {
 	
 	if (!isBookingNotification) return null;
 	
+	// Debug logging
+	console.log('Rendering booking notification:', {
+		message_type: message.message_type,
+		listing_title: message.listing_title,
+		listing_image: message.listing_image,
+		message_text: message.message_text
+	});
+	
 	return (
 		<div className={`flex ${fromMe ? 'justify-end' : 'justify-start'} group`}>
 			<div className={`relative max-w-[75%] ${fromMe ? 'ml-16' : 'mr-16'}`}>
@@ -55,19 +63,28 @@ const BookingNotification = ({ message, fromMe }) => {
 				<div className={`${fromMe ? 'bg-black text-white' : 'bg-white text-gray-900 border border-gray-200'} px-4 py-3 rounded-2xl shadow-sm relative`}>
 					{/* Booking notification content */}
 					<div className="flex items-start gap-3">
-						{/* Listing image */}
-						{message.listing_image && (
-							<div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+						{/* Listing image - always show placeholder or image */}
+						<div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-200 flex items-center justify-center">
+							{message.listing_image ? (
 								<img
 									src={message.listing_image}
 									alt={message.listing_title || 'Listing'}
 									className="w-full h-full object-cover"
 									onError={(e) => {
+										console.log('Image failed to load:', message.listing_image);
 										e.target.style.display = 'none';
+										e.target.nextSibling.style.display = 'flex';
 									}}
 								/>
+							) : null}
+							{/* Fallback when no image or image fails to load */}
+							<div 
+								className="w-full h-full flex items-center justify-center text-xs"
+								style={{ display: message.listing_image ? 'none' : 'flex' }}
+							>
+								🏠
 							</div>
-						)}
+						</div>
 						{/* Message content */}
 						<div className="flex-1 min-w-0">
 							<p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
@@ -660,6 +677,7 @@ function Messages() {
 										
 										// Check if this is a booking notification
 										if (m.message_type === 'booking_notification') {
+											console.log('Found booking notification message:', m);
 											return (
 												<BookingNotification 
 													key={`${m.id}-${m.created_at}-${i}`}
@@ -904,6 +922,7 @@ function Messages() {
 											
 											// Check if this is a booking notification
 											if (m.message_type === 'booking_notification') {
+												console.log('Found booking notification message (mobile):', m);
 												return (
 													<BookingNotification 
 														key={`${m.id}-${m.created_at}-${i}`}
