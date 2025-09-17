@@ -97,7 +97,7 @@ function AuthPage({ onAuthSuccess, authMethod: initialAuthMethod = 'email' }) {
             } else if (serverMessage) {
                 setErrorMessage(serverMessage);
             } else if (!err?.response && err?.request) {
-                setErrorMessage("Cannot reach server. Is the API running at http://localhost:5000?");
+                setErrorMessage("Cannot reach server. Is the API running at https://dynamic-tranquility-production.up.railway.app?");
             } else if (status === 404) {
                 setErrorMessage("Endpoint not found: /api/users/checkemailexist");
             } else if (status === 500) {

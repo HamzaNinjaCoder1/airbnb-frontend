@@ -649,7 +649,7 @@ function Reserve({ selectedDates, setSelectedDates }) {
                 }
                 setErrorMessage(serverMessage);
             } else if (!err?.response && err?.request) {
-                setErrorMessage("Cannot reach server. Is the API running at http://localhost:5000?","check route /api/users/checkemailexist");
+                setErrorMessage("Cannot reach server. Is the API running at https://dynamic-tranquility-production.up.railway.app?","check route /api/users/checkemailexist");
             } else if (status === 404) {
                 setErrorMessage("Endpoint not found: /api/users/checkemailexist");
             } else if (status === 500) {
@@ -678,7 +678,7 @@ function Reserve({ selectedDates, setSelectedDates }) {
             } else if (status === 401) {
                 setErrorMessage("Invalid email or password");
             } else if (!err?.response && err?.request) {
-                setErrorMessage("Cannot reach server. Is the API running at http://localhost:5000?");
+                setErrorMessage("Cannot reach server. Is the API running at https://dynamic-tranquility-production.up.railway.app?");
             } else {
                 setErrorMessage("Unable to log in right now. Please try again.");
             }

@@ -10,7 +10,7 @@ class BookingService {
   async getBookedRanges(listingId) {
     try {
       console.log(`Making API call to: ${this.baseURL}/bookings/listing/${listingId}`);
-      console.log(`Full URL: http://localhost:5000/api/data/bookings/listing/${listingId}`);
+      console.log(`Full URL: https://dynamic-tranquility-production.up.railway.app/api/data/bookings/listing/${listingId}`);
       console.log('Listing ID type:', typeof listingId);
       console.log('Listing ID value:', listingId);
       

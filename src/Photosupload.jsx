@@ -72,7 +72,7 @@ function PhotosUpload({ progress, setProgress }) {
         console.log(`[PhotosUpload] Preparing to upload ${files.length} files:`, files.map((f) => f.name));
         try {
             await api.post(
-                `http://localhost:5000/api/data/upload-images?hostId=${user.id}${listingId ? `&listingId=${listingId}` : ''}`,
+                `/api/data/upload-images?hostId=${user.id}${listingId ? `&listingId=${listingId}` : ''}`,
                 form
             );
         } catch (error) {
@@ -97,7 +97,7 @@ function PhotosUpload({ progress, setProgress }) {
     const saveListingProgress = async (payload = {}) => {
         if (!user?.id) return;
         await api.patch(
-            `http://localhost:5000/api/data/listings/save-exit?hostId=${user.id}${listingId ? `&listingId=${listingId}` : ''}`,
+            `/api/data/listings/save-exit?hostId=${user.id}${listingId ? `&listingId=${listingId}` : ''}`,
             payload
         );
     };

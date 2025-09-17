@@ -63,7 +63,7 @@ function DescriptionStep() {
         if (!hostId) return;
         try {
             await api.patch(
-                `http://localhost:5000/api/data/listings/save-exit?hostId=${hostId}${listingId ? `&listingId=${listingId}` : ''}`,
+                `/api/data/listings/save-exit?hostId=${hostId}${listingId ? `&listingId=${listingId}` : ''}`,
                 payload
             );
         } catch (error) {

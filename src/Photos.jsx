@@ -115,7 +115,7 @@ function Photos() {
     const saveListingProgress = async (payload = {}) => {
         if (!isAuthenticated || !user?.id) return;
         await api.patch(
-            `http://localhost:5000/api/data/listings/save-exit?hostId=${user.id}${listingId ? `&listingId=${listingId}` : ''}`,
+            `/api/data/listings/save-exit?hostId=${user.id}${listingId ? `&listingId=${listingId}` : ''}`,
             payload
         );
     };
