@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import axios from 'axios';
+import api from './api';
 import HostWrapper from './HostWrapper';
 
 function PrivacyType({ onSaveAndExit, onNext, onBack, isSaving, hostId, onPrivacyTypeChange, progress, setProgress }) {
@@ -20,7 +20,7 @@ function PrivacyType({ onSaveAndExit, onNext, onBack, isSaving, hostId, onPrivac
     const [stayType, setstayType] = useState(null);
     const handleSubmit = async () => {
         try{
-            const res = await axios.post('http://localhost:5000/api/data/listing', {
+            const res = await api.post('/api/data/listing', {
                 stay_type: stayType
             });
             console.log(res);

@@ -1,4 +1,4 @@
-import axios from "axios";
+import api from "./api";
 
 const VAPID_PUBLIC_KEY =
   "BP0OJzfIv3gutn2bu2VbP3Y062ZYRhtLNiYxxDe_OM1aueh7bJKcx5S72UzsRs40kFsukwOxfV13oTUJo-3vOFU";
@@ -23,8 +23,8 @@ export async function subscribeUser() {
   });
 
   try {
-    await axios.post(
-      "http://localhost:5000/api/data/subscribe",
+    await api.post(
+      "/api/data/subscribe",
       { subscription },
       { withCredentials: true }
     );
@@ -76,8 +76,8 @@ export async function unsubscribeUser() {
     await sub.unsubscribe();
 
     try {
-      await axios.post(
-        "http://localhost:5000/api/data/unsubscribe",
+      await api.post(
+        "/api/data/unsubscribe",
         { endpoint: sub.endpoint },
         { withCredentials: true }
       );

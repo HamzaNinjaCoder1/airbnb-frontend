@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import axios from 'axios'
+import api from './api'
 import { format, addDays, differenceInDays } from 'date-fns';
 import { DateRange } from 'react-date-range';
 import { enUS } from 'date-fns/locale';
@@ -303,7 +303,7 @@ function Reserve({ selectedDates, setSelectedDates }) {
                 
                 // Priority 2: Try to fetch from database
                 try {
-                    const response = await axios.get('http://localhost:5000/api/data/listing');
+                    const response = await api.get('/api/data/listing');
                     
                     // Handle both array and grouped object responses from backend
                     let listings = [];
@@ -482,7 +482,7 @@ function Reserve({ selectedDates, setSelectedDates }) {
             }
 
             // Send booking confirmation to backend
-            const response = await axios.post(
+            const response = await api.post(
                 'http://localhost:5000/api/data/bookings/confirm',
                 bookingData,
                 { withCredentials: true }
@@ -512,7 +512,7 @@ function Reserve({ selectedDates, setSelectedDates }) {
             
             // Try to fetch from database first
             try {
-                const response = await axios.get(`http://localhost:5000/api/data/listing?city=${encodeURIComponent(city)}`);
+                const response = await api.get(`/api/data/listing?city=${encodeURIComponent(city)}`);
                 
                 // Handle both array and grouped object responses from backend
                 let listings = [];
@@ -622,7 +622,7 @@ function Reserve({ selectedDates, setSelectedDates }) {
             return;
         }
         try {
-            await axios.post(`http://localhost:5000/api/users/checkemailexist`, { email });
+            await api.post(`/api/users/checkemailexist`, { email });
                     setIsEmailExist(false);
             setIsSignupFlow(true);
             setShowError(false);
@@ -665,7 +665,7 @@ function Reserve({ selectedDates, setSelectedDates }) {
             return;
         }
         try {
-            await axios.post(`http://localhost:5000/api/users/login`, { email, password });
+            await api.post(`/api/users/login`, { email, password });
         } catch (err) {
             const status = err?.response?.status;
             const serverMessage = err?.response?.data?.error || err?.response?.data?.message;
@@ -702,7 +702,7 @@ function Reserve({ selectedDates, setSelectedDates }) {
         if (password && password.length < 8) { setPasswordError("Password must be at least 8 characters"); hasError = true; }
         if (hasError) return;
         try {
-            const res = await axios.post(`http://localhost:5000/api/users/register`, {
+            const res = await api.post(`/api/users/register`, {
                 first_name: firstName,
                 last_name: lastName,
                 email,
@@ -764,7 +764,7 @@ function Reserve({ selectedDates, setSelectedDates }) {
                                     try {
                                         // Try database first
                                         try {
-                                            const response = await axios.get('http://localhost:5000/api/data/listing');
+                                            const response = await api.get('/api/data/listing');
                                             // Handle both array and grouped object responses from backend
                                             let listings = [];
                                             if (Array.isArray(response.data)) {

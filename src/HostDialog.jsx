@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from './AuthContext';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from './api';
 
 function HostDialog({ showHostDialog, setShowHostDialog, selectedHostType, setSelectedHostType }) {
     const { isAuthenticated, user } = useAuth();
@@ -20,8 +20,8 @@ function HostDialog({ showHostDialog, setShowHostDialog, selectedHostType, setSe
                 const today = new Date();
                 const title = `Your listing started ${today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
                 // Use save-exit endpoint to create a new draft (no listingId => create)
-                const res = await axios.patch(
-                    `http://localhost:5000/api/data/listings/save-exit?hostId=${hostId}`,
+                const res = await api.patch(
+                    `/api/data/listings/save-exit?hostId=${hostId}`,
                     {
                         title,
                         stay_type: selectedHostType,

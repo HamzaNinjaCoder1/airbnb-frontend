@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from './api';
 
 const HostWrapper = ({ 
     children, 
@@ -41,8 +41,8 @@ const HostWrapper = ({
                 ...additionalData
             };
 
-            const response = await axios.patch(
-                `http://localhost:5000/api/data/listings/save-exit?hostId=${hostId}${listingId ? `&listingId=${listingId}` : ''}`,
+            const response = await api.patch(
+                `/api/data/listings/save-exit?hostId=${hostId}${listingId ? `&listingId=${listingId}` : ''}`,
                 requestData,
                 { withCredentials: true }
             );
@@ -84,8 +84,8 @@ const HostWrapper = ({
                 ...additionalData
             };
 
-            const response = await axios.patch(
-                `http://localhost:5000/api/data/listings/save-exit?hostId=${hostId}${listingId ? `&listingId=${listingId}` : ''}`,
+            const response = await api.patch(
+                `/api/data/listings/save-exit?hostId=${hostId}${listingId ? `&listingId=${listingId}` : ''}`,
                 requestData,
                 { withCredentials: true }
             );

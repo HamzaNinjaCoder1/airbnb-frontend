@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import HostDialog from './HostDialog';
 import ListingHader from './ListingHader';
 import Footer from './Footer';
-import axios from 'axios';
+import api from './api';
 import { UPLOADS_BASE_URL } from './config.js';
 
 const STATUS_META = {
@@ -228,7 +228,7 @@ const Listings = () => {
       const hostId = listingToDelete.host_id || hostIdFromParams || searchParams.get('hostId') || 1;
       const listingId = listingToDelete.id || listingToDelete.listing_id;
       
-      const response = await axios.delete(`/api/data/listings/deletelisting?listingId=${listingId}&hostId=${hostId}`);
+      const response = await api.delete(`/api/data/listings/deletelisting?listingId=${listingId}&hostId=${hostId}`);
       
       if (response.status === 200) {
         setItems(prevItems => prevItems.filter(item => 
@@ -301,7 +301,7 @@ const Listings = () => {
     const fetchListings = async () => {
       try {
         const hostId = hostIdFromParams || searchParams.get('hostId') || 1;
-        const res = await axios.get(`/api/data/listings/HostListingImages?hostId=${hostId}`);
+        const res = await api.get(`/api/data/listings/HostListingImages?hostId=${hostId}`);
         
         console.log('Listings API Response:', res.data);
         

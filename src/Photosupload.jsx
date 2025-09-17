@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import axios from 'axios';
+import api from './api';
 
 function PhotosUpload({ progress, setProgress }) {
     const { isAuthenticated, user } = useAuth();
@@ -71,7 +71,7 @@ function PhotosUpload({ progress, setProgress }) {
         files.forEach((file) => form.append('images', file));
         console.log(`[PhotosUpload] Preparing to upload ${files.length} files:`, files.map((f) => f.name));
         try {
-            await axios.post(
+            await api.post(
                 `http://localhost:5000/api/data/upload-images?hostId=${user.id}${listingId ? `&listingId=${listingId}` : ''}`,
                 form
             );
@@ -96,7 +96,7 @@ function PhotosUpload({ progress, setProgress }) {
 
     const saveListingProgress = async (payload = {}) => {
         if (!user?.id) return;
-        await axios.patch(
+        await api.patch(
             `http://localhost:5000/api/data/listings/save-exit?hostId=${user.id}${listingId ? `&listingId=${listingId}` : ''}`,
             payload
         );

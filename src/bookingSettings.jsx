@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import axios from 'axios';
+import api from './api';
 
 const BookingSettings = () => {
     const navigate = useNavigate();
@@ -57,7 +57,7 @@ const BookingSettings = () => {
     const saveListingProgress = async (payload = {}) => {
         if (!hostId) return;
         try {
-            await axios.patch(
+            await api.patch(
                 `http://localhost:5000/api/data/listings/save-exit?hostId=${hostId}${listingId ? `&listingId=${listingId}` : ''}`,
                 payload,
                 { withCredentials: true }

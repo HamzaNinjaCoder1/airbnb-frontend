@@ -1,4 +1,4 @@
-import axios from 'axios';
+import api from '../api.js';
 import { API_BASE_URL } from '../config.js';
 
 class BookingService {
@@ -14,7 +14,7 @@ class BookingService {
       console.log('Listing ID type:', typeof listingId);
       console.log('Listing ID value:', listingId);
       
-      const response = await axios.get(`${this.baseURL}/bookings/listing/${listingId}`, {
+      const response = await api.get(`${this.baseURL}/bookings/listing/${listingId}`, {
         withCredentials: true
       });
       

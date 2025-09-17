@@ -4,7 +4,7 @@ import { enUS } from "date-fns/locale";
 import "react-date-range/dist/styles.css";
 import "react-date-range/dist/theme/default.css";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import axios from 'axios';
+import api from './api';
 import { Islamabad, Rawalpindi } from "./data";
 import SpaceDescription from './SpaceDescription';
 import ThingsAvailibility from './ThingsAvailibility';
@@ -478,7 +478,7 @@ function ProductsDetails({ setSelectedDates }) {
         const loadListing = async () => {
             try {
                 setIsLoadingListing(true);
-                const res = await axios.get('http://localhost:5000/api/data/listing', { signal: controller.signal });
+                const res = await api.get('/api/data/listing', { signal: controller.signal });
                 const grouped = res.data || {};
                 let found = null;
                 Object.values(grouped).forEach((arr) => {
@@ -552,7 +552,7 @@ function ProductsDetails({ setSelectedDates }) {
         };
     }, []);
 
-    const baseUploads = 'http://localhost:5000/uploads/';
+    const baseUploads = 'https://dynamic-tranquility-production.up.railway.app/uploads/';
     const dbImages = (dbListing?.images || [])
         .map((img) => {
             if (!img) return null;

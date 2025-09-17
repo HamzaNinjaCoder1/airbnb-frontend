@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import api from './api';
 import { subscribeUser } from './pushService';
 
 const AuthContext = createContext();
@@ -33,7 +33,7 @@ export const AuthProvider = ({ children }) => {
 
     const checkAuthStatus = async () => {
         try {
-            const response = await axios.get("http://localhost:5000/api/users/me", { withCredentials: true });
+            const response = await api.get("/api/users/me", { withCredentials: true });
             // Backend returns { message, user }
             const authUser = response.data?.user || response.data;
             setUser(authUser || null);
@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         try {
-            await axios.post("http://localhost:5000/api/users/login", {
+            await api.post("/api/users/login", {
                 email,
                 password
             }, { withCredentials: true });
@@ -67,7 +67,7 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (userData) => {
         try {
-            await axios.post("http://localhost:5000/api/users/register", userData, { withCredentials: true });
+            await api.post("/api/users/register", userData, { withCredentials: true });
             await checkAuthStatus();
             try {
                 await subscribeUser();
@@ -83,7 +83,7 @@ export const AuthProvider = ({ children }) => {
 
     const logout = async () => {
         try {
-            await axios.post("http://localhost:5000/api/users/logout", {}, { withCredentials: true });
+            await api.post("/api/users/logout", {}, { withCredentials: true });
         } catch (error) {
             console.error('Logout error:', error);
         } finally {

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useParams, Link, useLocation } from 'react-router-dom'
-import axios from 'axios'
+import api from './api'
 import { Islamabad as IslamabadStatic, Rawalpindi as RawalpindiStatic } from './data'
 
 function ImageCarousel({ images = [], height = 220 }) {
@@ -72,7 +72,7 @@ function CityExplore() {
             try {
                 setLoading(true)
                 setError(null)
-                const res = await axios.get('http://localhost:5000/api/data/listing')
+                const res = await api.get('/api/data/listing')
                 const grouped = res?.data || {}
                 let raw = []
                 if (!normalizedCity || normalizedCity.toLowerCase() === 'all') {
@@ -225,7 +225,7 @@ function CityExplore() {
                 <div className="min-h-[50vh] lg:col-span-7">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                         {pageItems.map((p) => {
-                            const baseUploads = 'http://localhost:5000/uploads/'
+                            const baseUploads = 'https://dynamic-tranquility-production.up.railway.app/uploads/'
                             let imageSrc = 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=2070&q=80'
                             const first = Array.isArray(p?.images) ? p.images[0] : null
                             if (first) {

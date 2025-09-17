@@ -1,4 +1,4 @@
-import axios from 'axios';
+import api from '../api.js';
 import { API_BASE_URL } from '../config.js';
 
 class MessagingService {
@@ -9,7 +9,7 @@ class MessagingService {
   // Get all conversations for a user
   async getConversations(userId) {
     try {
-      const response = await axios.get(`${this.baseURL}/conversations/${userId}`, {
+      const response = await api.get(`${this.baseURL}/conversations/${userId}`, {
         withCredentials: true
       });
       return response.data;
@@ -22,7 +22,7 @@ class MessagingService {
   // Get messages for a specific conversation
   async getMessages(conversationId) {
     try {
-      const response = await axios.get(`${this.baseURL}/messages/get-messages?conversation_id=${conversationId}`, {
+      const response = await api.get(`${this.baseURL}/messages/get-messages?conversation_id=${conversationId}`, {
         withCredentials: true
       });
       return response.data;
@@ -35,7 +35,7 @@ class MessagingService {
   // Send a message
   async sendMessage(messageData) {
     try {
-      const response = await axios.post(`${this.baseURL}/messages/send-message`, messageData, {
+      const response = await api.post(`${this.baseURL}/messages/send-message`, messageData, {
         withCredentials: true
       });
       return response.data;
@@ -48,7 +48,7 @@ class MessagingService {
   // Subscribe to push notifications
   async subscribeToPush(subscription) {
     try {
-      const response = await axios.post(`${this.baseURL}/subscribe`, { subscription }, {
+      const response = await api.post(`${this.baseURL}/subscribe`, { subscription }, {
         withCredentials: true
       });
       return response.data;
@@ -61,7 +61,7 @@ class MessagingService {
   // Unsubscribe from push notifications
   async unsubscribeFromPush(endpoint) {
     try {
-      const response = await axios.post(`${this.baseURL}/unsubscribe`, { endpoint }, {
+      const response = await api.post(`${this.baseURL}/unsubscribe`, { endpoint }, {
         withCredentials: true
       });
       return response.data;
@@ -74,7 +74,7 @@ class MessagingService {
   // Get user's push subscription status
   async getPushSubscriptions(userId) {
     try {
-      const response = await axios.get(`${this.baseURL}/push-subscriptions/${userId}`, {
+      const response = await api.get(`${this.baseURL}/push-subscriptions/${userId}`, {
         withCredentials: true
       });
       return response.data;
@@ -87,7 +87,7 @@ class MessagingService {
   // Test notification endpoint
   async sendTestNotification(listingId, message) {
     try {
-      const response = await axios.post(`${this.baseURL}/test-notification`, { 
+      const response = await api.post(`${this.baseURL}/test-notification`, { 
         listingId, 
         message 
       }, {

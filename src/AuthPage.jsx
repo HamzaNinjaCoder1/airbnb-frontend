@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from './api';
 import SecondHeader from './SecondHeader';
 import Footer from './Footer';
 import { useAuth } from './AuthContext';
@@ -65,7 +65,7 @@ function AuthPage({ onAuthSuccess, authMethod: initialAuthMethod = 'email' }) {
             return;
         }
         try {
-            const response = await axios.post(`http://localhost:5000/api/users/checkemailexist`, { email });
+            const response = await api.post(`/api/users/checkemailexist`, { email });
             // If we get here, email is available (200 response) - show signup form
             checkEmailExist(false);
             setIsSignupFlow(true);

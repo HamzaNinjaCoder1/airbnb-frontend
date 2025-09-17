@@ -9,7 +9,7 @@ import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import { useAuth } from './AuthContext';
-import axios from 'axios';
+import api from './api';
 gsap.registerPlugin(ScrollTrigger);
 
 function Photos() {
@@ -114,7 +114,7 @@ function Photos() {
 
     const saveListingProgress = async (payload = {}) => {
         if (!isAuthenticated || !user?.id) return;
-        await axios.patch(
+        await api.patch(
             `http://localhost:5000/api/data/listings/save-exit?hostId=${user.id}${listingId ? `&listingId=${listingId}` : ''}`,
             payload
         );

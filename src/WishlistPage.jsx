@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import axios from 'axios'
+import api from './api'
 import { Link, useNavigate } from 'react-router-dom'
 import SecondHeader from './SecondHeader'
 import { useAuth } from './AuthContext'
@@ -19,7 +19,7 @@ function WishlistPage() {
     (async () => {
       try {
         setLoading(true)
-        const res = await axios.get(`http://localhost:5000/api/data/wishlist/${user.id}`, { withCredentials: true })
+        const res = await api.get(`/api/data/wishlist/${user.id}`, { withCredentials: true })
         setItems(res.data?.data || [])
       } catch (err) {
         setError(err?.response?.data?.message || 'Failed to load wishlist')
@@ -48,7 +48,7 @@ function WishlistPage() {
             {items.map((it) => {
               const listing = it.listing
               const img = Array.isArray(listing?.images) && listing.images.length > 0 ? listing.images[0] : null
-              const imageSrc = img ? (/^https?:\/\//.test(img) ? img : `http://localhost:5000/uploads/${img}`) : 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=2070&q=80'
+              const imageSrc = img ? (/^https?:\/\//.test(img) ? img : `https://dynamic-tranquility-production.up.railway.app/uploads/${img}`) : 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=2070&q=80'
               return (
                 <div key={it.id} className="group rounded-2xl overflow-hidden border hover:shadow-lg transition-shadow">
                   <div className="relative">
@@ -59,7 +59,7 @@ function WishlistPage() {
                       className="absolute top-2 right-2 bg-white/90 hover:bg-white rounded-full p-2 shadow"
                       onClick={async () => {
                         try {
-                          await axios.delete(`http://localhost:5000/api/data/wishlist/remove/${it.id}`, { withCredentials: true })
+                          await api.delete(`/api/data/wishlist/remove/${it.id}`, { withCredentials: true })
                           setItems(prev => prev.filter(x => x.id !== it.id))
                         } catch (err) {}
                       }}

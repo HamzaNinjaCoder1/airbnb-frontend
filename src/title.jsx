@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import axios from 'axios';
+import api from './api';
 
 function TitleStep({ progress, setProgress }) {
     const navigate = useNavigate();
@@ -29,8 +29,8 @@ function TitleStep({ progress, setProgress }) {
     const saveListingProgress = async (payload = {}) => {
         if (!hostId) return;
         try {
-            await axios.patch(
-                `http://localhost:5000/api/data/listings/save-exit?hostId=${hostId}${listingId ? `&listingId=${listingId}` : ''}`,
+            await api.patch(
+                `/api/data/listings/save-exit?hostId=${hostId}${listingId ? `&listingId=${listingId}` : ''}`,
                 payload
             );
         } catch (error) {

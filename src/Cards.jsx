@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import Slider from 'react-slick';
-import axios from 'axios';
+import api from './api';
 import { UPLOADS_BASE_URL } from './config.js';
 import { Link, useNavigate } from 'react-router-dom';
 import "slick-carousel/slick/slick.css";
@@ -31,7 +31,7 @@ function Cards() {
   const getHeadings = async () => {
     try {
       setHeadingsLoading(true);
-      const response = await axios.get('/api/data/headings/grouped');
+      const response = await api.get('/api/data/headings/grouped');
 
       if (response.data && Array.isArray(response.data)) {
         const cityHeadings = {};
@@ -54,7 +54,7 @@ function Cards() {
       setLoading(true);
       setError(null);
       const url = '/api/data/listing';
-      const response = await axios.get(url);
+      const response = await api.get(url);
 
       if (response.data && typeof response.data === "object") {
         setGroupedProducts(response.data);
@@ -79,7 +79,7 @@ function Cards() {
     (async () => {
       try {
         if (!isAuthenticated || !user) return;
-        const res = await axios.get(`/api/data/wishlist/${user.id}`, { withCredentials: true });
+        const res = await api.get(`/api/data/wishlist/${user.id}`, { withCredentials: true });
         const data = res.data?.data || [];
         const ids = new Set(data.map((i) => i.listing_id));
         const map = new Map(data.map((i) => [i.listing_id, i.id]));
@@ -272,7 +272,7 @@ function Cards() {
                               if (!wishlistId) return;
                               (async () => {
                                 try {
-                                  await axios.delete(`/api/data/wishlist/remove/${wishlistId}`, { withCredentials: true });
+                                  await api.delete(`/api/data/wishlist/remove/${wishlistId}`, { withCredentials: true });
                                   setSavedIds((prev) => {
                                     const n = new Set(prev);
                                     n.delete(product.id);
@@ -390,7 +390,7 @@ function Cards() {
                           navigate('/auth', { replace: true });
                           return;
                         }
-                        const res = await axios.post('/api/data/wishlist/add', {
+                        const res = await api.post('/api/data/wishlist/add', {
                           user_id: user?.id,
                           listing_id: selectedListing.id,
                         }, { withCredentials: true });
