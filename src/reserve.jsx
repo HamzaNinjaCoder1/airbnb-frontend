@@ -512,15 +512,22 @@ function Reserve({ selectedDates, setSelectedDates }) {
                 }
             };
 
-            // Send notification via API
+            // Send notification via API to your production backend
             try {
-                await api.post('/api/data/notifications/send-booking', {
+                const response = await api.post('/api/data/notifications/send-booking', {
                     host_id: listingData.host_id,
-                    notification: notificationData
+                    notification: notificationData,
+                    origin: window.location.origin,
+                    userAgent: navigator.userAgent
                 }, { withCredentials: true });
-                console.log('Booking notification sent successfully');
+                console.log('Booking notification sent successfully:', response.data);
             } catch (apiError) {
                 console.warn('Failed to send notification via API, but booking was successful:', apiError);
+                console.warn('API Error details:', {
+                    status: apiError.response?.status,
+                    data: apiError.response?.data,
+                    message: apiError.message
+                });
                 // Don't throw error here as booking was successful
             }
         } catch (error) {

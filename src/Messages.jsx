@@ -490,25 +490,6 @@ function Messages() {
 		setBookingNotification(null)
 	}
 
-	// Test function to manually trigger booking notification (for debugging)
-	const testBookingNotification = () => {
-		const testNotification = {
-			type: 'booking_confirmed',
-			listing: {
-				id: 'test-123',
-				title: 'Cabin in Lahore',
-				image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-				host_id: 'test-host'
-			},
-			booking: {
-				check_in_date: '2024-01-15',
-				check_out_date: '2024-01-17',
-				guests: 2,
-				total_price: 300
-			}
-		};
-		setBookingNotification(testNotification);
-	}
 
 	// Show loading or error states
 	if (loading && conversations.length === 0) {
@@ -558,13 +539,6 @@ function Messages() {
 						<div className="px-6 py-4 border-b border-gray-200 bg-white">
 							<div className="flex items-center justify-between mb-3">
 								<h1 className="text-xl font-bold text-gray-900">Messages</h1>
-								{/* Test button for debugging - remove in production */}
-								<button 
-									onClick={testBookingNotification}
-									className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
-								>
-									Test Notification
-								</button>
 							</div>
 							<div className="relative">
 								<input
@@ -807,13 +781,6 @@ function Messages() {
 							<div className="px-4 py-4 border-b border-gray-200 bg-white">
 								<div className="flex items-center justify-between mb-3">
 									<h1 className="text-xl font-bold text-gray-900">Messages</h1>
-									{/* Test button for debugging - remove in production */}
-									<button 
-										onClick={testBookingNotification}
-										className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
-									>
-										Test
-									</button>
 								</div>
 								<div className="relative">
 									<input

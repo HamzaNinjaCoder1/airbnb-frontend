@@ -36,16 +36,27 @@ self.addEventListener("notificationclick", function (event) {
       return;
     }
   
+    // Get the current origin to ensure proper URL construction
+    const origin = self.location.origin;
+    
     if (event.notification.data?.conversation_id) {
       event.waitUntil(
-        clients.openWindow(`/messages?conversationId=${event.notification.data.conversation_id}`)
+        clients.openWindow(`${origin}/messages?conversationId=${event.notification.data.conversation_id}`)
       );
     } else if (event.notification.data?.listing_id) {
       event.waitUntil(
-        clients.openWindow(`/products/${event.notification.data.listing_id}`)
+        clients.openWindow(`${origin}/products/${event.notification.data.listing_id}`)
+      );
+    } else if (event.notification.data?.type === 'booking_confirmation') {
+      // For booking notifications, always redirect to messages page
+      event.waitUntil(
+        clients.openWindow(`${origin}/messages`)
       );
     } else {
-      event.waitUntil(clients.openWindow("/messages"));
+      // Default redirect to messages page
+      event.waitUntil(
+        clients.openWindow(`${origin}/messages`)
+      );
     }
   });
   

@@ -30,15 +30,27 @@ export async function subscribeUser() {
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
     });
 
-    await api.post(
+    // Send subscription to your production backend
+    const response = await api.post(
       "/api/data/subscribe",
-      { subscription },
+      { 
+        subscription,
+        userAgent: navigator.userAgent,
+        origin: window.location.origin
+      },
       { withCredentials: true }
     );
+    
     console.log("User subscribed for push notifications:", subscription);
+    console.log("Backend response:", response.data);
     return { success: true, subscription };
   } catch (err) {
     console.error("Failed to subscribe to push notifications:", err);
+    console.error("Error details:", {
+      message: err.message,
+      status: err.response?.status,
+      data: err.response?.data
+    });
     return { success: false, error: err.message };
   }
 }
