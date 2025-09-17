@@ -485,7 +485,7 @@ function Reserve({ selectedDates, setSelectedDates }) {
 
             // Send booking confirmation to backend
             const response = await api.post(
-                'http://localhost:5000/api/data/bookings/confirm',
+                '/api/data/bookings/confirm',
                 bookingData,
                 { withCredentials: true }
             );
