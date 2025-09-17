@@ -43,110 +43,46 @@ const TypingIndicator = ({ isTyping }) => {
 };
 
 // Booking Notification Component
-const BookingNotification = ({ message, fromMe }) => {
-	// Check if this is a booking notification by looking for the specific message pattern
-	const isBookingNotification = message.message_text && 
-		message.message_text.includes('A new booking has been made for your listing');
+const BookingNotification = ({ notification, onDismiss }) => {
+	if (!notification || notification.type !== 'booking_confirmed') return null;
 	
-	if (!isBookingNotification) return null;
-	
-	// Parse metadata if available
-	let metadata = null;
-	if (message.metadata) {
-		try {
-			metadata = JSON.parse(message.metadata);
-		} catch (e) {
-			console.log('Failed to parse metadata:', e);
-		}
-	}
-	
-	// Extract listing info from metadata or message
-	const listingTitle = metadata?.listing_title || 
-		(message.message_text.match(/"([^"]+)"/)?.[1]) || 
-		'Unknown Listing';
-	
-	// Try to get image from metadata first, then from message text
-	let listingImage = metadata?.listing_image || null;
-	
-	// Fallback: try to extract image from message text comment
-	if (!listingImage && message.message_text.includes('<!-- IMAGE_DATA:')) {
-		const imageMatch = message.message_text.match(/<!-- IMAGE_DATA:([^>]+) -->/);
-		if (imageMatch) {
-			listingImage = imageMatch[1];
-		}
-	}
-	
-	// Clean up the message text to remove the image data comment
-	const cleanMessageText = message.message_text.replace(/<!-- IMAGE_DATA:[^>]+ -->/, '').trim();
-	
-	// Debug logging
-	console.log('Rendering booking notification:', {
-		original_message_text: message.message_text,
-		clean_message_text: cleanMessageText,
-		metadata: metadata,
-		listing_title: listingTitle,
-		listing_image: listingImage,
-		has_image: !!listingImage
-	});
+	const { listing, booking } = notification;
 	
 	return (
-		<div className={`flex ${fromMe ? 'justify-end' : 'justify-start'} group`}>
-			<div className={`relative max-w-[75%] ${fromMe ? 'ml-16' : 'mr-16'}`}>
-				{/* Booking notification bubble */}
-				<div className={`${fromMe ? 'bg-black text-white' : 'bg-white text-gray-900 border border-gray-200'} px-4 py-3 rounded-2xl shadow-sm relative`}>
-					{/* Booking notification content */}
-					<div className="flex items-start gap-3">
-						{/* Listing image - always show placeholder or image */}
-						<div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-200 flex items-center justify-center">
-							{listingImage ? (
-								<img
-									src={listingImage}
-									alt={listingTitle || 'Listing'}
-									className="w-full h-full object-cover"
-									onError={(e) => {
-										console.log('Image failed to load:', listingImage);
-										e.target.style.display = 'none';
-										e.target.nextSibling.style.display = 'flex';
-									}}
-								/>
-							) : null}
-							{/* Fallback when no image or image fails to load */}
-							<div 
-								className="w-full h-full flex items-center justify-center text-xs"
-								style={{ display: listingImage ? 'none' : 'flex' }}
-							>
-								🏠
-							</div>
-						</div>
-						{/* Message content */}
-						<div className="flex-1 min-w-0">
-							<p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-								{cleanMessageText}
-							</p>
-							{/* Listing title */}
-							{listingTitle && (
-								<div className={`mt-2 text-xs font-medium ${fromMe ? 'text-gray-300' : 'text-gray-600'}`}>
-									{listingTitle}
-								</div>
-							)}
-						</div>
-					</div>
-					{/* Timestamp and status */}
-					<div className={`flex items-center justify-end gap-2 mt-2 ${fromMe ? 'text-gray-300' : 'text-gray-400'}`}>
-						<span className="text-xs font-medium">{formatTime(message.created_at)}</span>
-						<MessageStatus status={message.status} fromMe={fromMe} />
-					</div>
-				</div>
-				{/* Speech bubble tail */}
-				<div className={`absolute ${fromMe ? 'right-[-6px] top-4' : 'left-[-6px] top-4'}`}>
-					<div className={`w-0 h-0 ${fromMe ? 'border-l-[6px] border-l-black border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent' : 'border-r-[6px] border-r-white border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent'}`}></div>
-				</div>
-				{/* Border tail for received messages */}
-				{!fromMe && (
-					<div className="absolute left-[-7px] top-4">
-						<div className="w-0 h-0 border-r-[7px] border-r-gray-200 border-t-[7px] border-t-transparent border-b-[7px] border-b-transparent"></div>
-					</div>
+		<div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-xl shadow-sm">
+			<div className="flex items-start gap-4">
+				{listing.image && (
+					<img 
+						src={listing.image} 
+						alt={listing.title}
+						className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+					/>
 				)}
+				<div className="flex-1 min-w-0">
+					<div className="flex items-center gap-2 mb-2">
+						<div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+						<h3 className="text-sm font-semibold text-green-800">Booking Confirmed!</h3>
+					</div>
+					<p className="text-sm text-gray-700 mb-2">
+						A new booking has been made for your listing <span className="font-semibold">"{listing.title}"</span>.
+					</p>
+					{booking && (
+						<div className="text-xs text-gray-600 space-y-1">
+							<p>Check-in: {booking.check_in_date}</p>
+							<p>Check-out: {booking.check_out_date}</p>
+							<p>Guests: {booking.guests}</p>
+							<p>Total: ${booking.total_price}</p>
+						</div>
+					)}
+				</div>
+				<button 
+					onClick={onDismiss}
+					className="p-1 hover:bg-gray-200 rounded-full transition-colors"
+				>
+					<svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+					</svg>
+				</button>
 			</div>
 		</div>
 	);
@@ -170,6 +106,7 @@ function Messages() {
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState(null)
 	const [notificationPermission, setNotificationPermission] = useState(null)
+	const [bookingNotification, setBookingNotification] = useState(null)
 	const messagesEndRef = useRef(null)
 	const typingTimeoutRef = useRef(null)
 	const currentRoomRef = useRef(null)
@@ -183,6 +120,15 @@ function Messages() {
 			socketService.disconnect()
 		}
 	}, [isAuthenticated, user])
+
+	// Handle booking notification from location state
+	useEffect(() => {
+		if (location.state?.bookingNotification) {
+			setBookingNotification(location.state.bookingNotification)
+			// Clear the state to prevent showing again on refresh
+			window.history.replaceState({}, document.title)
+		}
+	}, [location.state])
 
 	// Handle URL changes
 	useEffect(() => {
@@ -247,11 +193,17 @@ function Messages() {
 				const result = await requestNotificationPermission()
 				if (result.success) {
 					// Subscribe to push notifications
-					await subscribeUser()
+					const subscribeResult = await subscribeUser()
+					if (!subscribeResult.success) {
+						console.error('Failed to subscribe to push notifications:', subscribeResult.error)
+					}
 				}
 			} else if (permissionStatus.supported && permissionStatus.granted) {
 				// Already granted, subscribe to push notifications
-				await subscribeUser()
+				const subscribeResult = await subscribeUser()
+				if (!subscribeResult.success) {
+					console.error('Failed to subscribe to push notifications:', subscribeResult.error)
+				}
 			}
 		} catch (error) {
 			console.error('Error setting up notifications:', error)
@@ -507,6 +459,11 @@ function Messages() {
 		return message.sender_id === user.id
 	}
 
+	// Dismiss booking notification
+	const dismissBookingNotification = () => {
+		setBookingNotification(null)
+	}
+
 	// Show loading or error states
 	if (loading && conversations.length === 0) {
 		return (
@@ -700,6 +657,12 @@ function Messages() {
 						{/* Messages */}
 						<div className="flex-1 overflow-y-auto bg-gray-50 px-6 py-6">
 							<div className="max-w-3xl mx-auto space-y-6">
+								{/* Booking Notification */}
+								<BookingNotification 
+									notification={bookingNotification} 
+									onDismiss={dismissBookingNotification} 
+								/>
+								
 								{messages.length === 0 ? (
 									<div className="flex items-center justify-center h-32">
 										<p className="text-gray-500">No messages yet. Start the conversation!</p>
@@ -707,20 +670,6 @@ function Messages() {
 								) : (
 									messages.map((m, i) => {
 										const fromMe = isMessageFromMe(m)
-										
-										// Check if this is a booking notification
-										if (m.message_text && m.message_text.includes('A new booking has been made for your listing')) {
-											console.log('Found booking notification message:', m);
-											return (
-												<BookingNotification 
-													key={`${m.id}-${m.created_at}-${i}`}
-													message={m} 
-													fromMe={fromMe} 
-												/>
-											)
-										}
-										
-										// Regular message
 										return (
 											<div key={`${m.id}-${m.created_at}-${i}`} className={`flex ${fromMe ? 'justify-end' : 'justify-start'} group`}>
 												<div className={`relative max-w-[75%] ${fromMe ? 'ml-16' : 'mr-16'}`}>
@@ -945,6 +894,12 @@ function Messages() {
 							{/* Mobile Messages */}
 							<div className="flex-1 overflow-y-auto min-h-0 bg-gray-50 px-4 py-6">
 								<div className="space-y-6">
+									{/* Booking Notification - Mobile */}
+									<BookingNotification 
+										notification={bookingNotification} 
+										onDismiss={dismissBookingNotification} 
+									/>
+									
 									{messages.length === 0 ? (
 										<div className="flex items-center justify-center h-32">
 											<p className="text-gray-500">No messages yet. Start the conversation!</p>
@@ -952,20 +907,6 @@ function Messages() {
 									) : (
 										messages.map((m, i) => {
 											const fromMe = isMessageFromMe(m)
-											
-											// Check if this is a booking notification
-											if (m.message_text && m.message_text.includes('A new booking has been made for your listing')) {
-												console.log('Found booking notification message (mobile):', m);
-												return (
-													<BookingNotification 
-														key={`${m.id}-${m.created_at}-${i}`}
-														message={m} 
-														fromMe={fromMe} 
-													/>
-												)
-											}
-											
-											// Regular message
 											return (
 												<div key={`${m.id}-${m.created_at}-${i}`} className={`flex ${fromMe ? 'justify-end' : 'justify-start'} group`}>
 													<div className={`relative max-w-[85%] ${fromMe ? 'ml-12' : 'mr-12'}`}>

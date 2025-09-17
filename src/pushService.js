@@ -1,28 +1,35 @@
 import api from "./api";
 
 const VAPID_PUBLIC_KEY =
-  "BP0OJzfIv3gutn2bu2VbP3Y062ZYRhtLNiYxxDe_OM1aueh7bJKcx5S72UzsRs40kFsukwOxfV13oTUJo-3vOFU";
+  "BEl62iUYgUivxIkv69yViEuiBIa40HI8w0-8jWvJ3_sjXvOwQ63YPgZ_RxI3Ew5_S7F5URD0DXfq2d5eT7Y6B2A";
 
 export async function subscribeUser() {
   if (!("serviceWorker" in navigator)) {
     console.error("Service workers not supported");
-    return;
+    return { success: false, error: "Service workers not supported" };
   }
-
-  const permission = await Notification.requestPermission();
-  if (permission !== "granted") {
-    console.error("Notification permission denied");
-    return;
-  }
-
-  const reg = await navigator.serviceWorker.ready;
-
-  const subscription = await reg.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-  });
 
   try {
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+      console.error("Notification permission denied");
+      return { success: false, error: "Notification permission denied" };
+    }
+
+    const reg = await navigator.serviceWorker.ready;
+    
+    // Check if already subscribed
+    const existingSubscription = await reg.pushManager.getSubscription();
+    if (existingSubscription) {
+      console.log("User already subscribed for push notifications");
+      return { success: true, subscription: existingSubscription };
+    }
+
+    const subscription = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    });
+
     await api.post(
       "/api/data/subscribe",
       { subscription },
@@ -31,7 +38,7 @@ export async function subscribeUser() {
     console.log("User subscribed for push notifications:", subscription);
     return { success: true, subscription };
   } catch (err) {
-    console.error("Failed to send subscription:", err);
+    console.error("Failed to subscribe to push notifications:", err);
     return { success: false, error: err.message };
   }
 }

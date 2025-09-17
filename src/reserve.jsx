@@ -420,6 +420,48 @@ function Reserve({ selectedDates, setSelectedDates }) {
     }, [successMessage]);
 
     // Functions
+    const sendBookingNotification = async (listingData, bookingData) => {
+        try {
+            // Send push notification to host
+            const notificationData = {
+                title: "New Booking Confirmed!",
+                body: `A new booking has been made for your listing "${listingData.title}".`,
+                image: listingData.images?.[0] || listingData.image,
+                icon: "/icons/booking-icon.png",
+                badge: "/icons/badge-icon.png",
+                tag: `booking-${bookingData.listing_id}`,
+                requireInteraction: true,
+                data: {
+                    type: 'booking_confirmation',
+                    listing_id: listingData.id,
+                    listing_title: listingData.title,
+                    listing_image: listingData.images?.[0] || listingData.image,
+                    host_id: listingData.host_id,
+                    booking_id: bookingData.listing_id,
+                    check_in: bookingData.check_in_date,
+                    check_out: bookingData.check_out_date,
+                    guests: bookingData.guests,
+                    total_price: bookingData.total_price
+                }
+            };
+
+            // Send notification via API
+            try {
+                await api.post('/api/data/notifications/send-booking', {
+                    host_id: listingData.host_id,
+                    notification: notificationData
+                }, { withCredentials: true });
+                console.log('Booking notification sent successfully');
+            } catch (apiError) {
+                console.warn('Failed to send notification via API, but booking was successful:', apiError);
+                // Don't throw error here as booking was successful
+            }
+        } catch (error) {
+            console.error('Error sending booking notification:', error);
+            throw error;
+        }
+    };
+
     const handleBookingConfirmation = async () => {
         if (!selectedDatesFromState || !guestDataFromState || !data || !isAuthenticated) {
             alert('Please complete all required fields and ensure you are logged in.');
@@ -523,54 +565,31 @@ function Reserve({ selectedDates, setSelectedDates }) {
             );
 
             if (response.data.success) {
-                // Send booking notification message to host
+                // Send booking notification to host
                 try {
-                    console.log('Sending booking notification with data:', {
-                        title: data.title,
-                        image: data.image,
-                        host_id: data.host_id,
-                        listing_id: urlListingId
-                    });
-
-                    // Create a special message format that includes image data
-                    const bookingMessageText = `A new booking has been made for your listing "${data.title}".`;
-                    const bookingMessageData = {
-                        conversation_id: response.data.conversation_id || null,
-                        sender_id: user.id,
-                        receiver_id: data.host_id,
-                        message_text: bookingMessageText,
-                        // Store additional data in a special format that can be parsed
-                        metadata: JSON.stringify({
-                            type: 'booking_notification',
-                            listing_id: urlListingId,
-                            listing_title: data.title,
-                            listing_image: data.image
-                        })
-                    };
-
-                    // Also try storing image data in a comment-like format in the message
-                    // This is a fallback in case metadata doesn't work
-                    const messageWithImageData = `${bookingMessageText} <!-- IMAGE_DATA:${data.image} -->`;
-                    bookingMessageData.message_text = messageWithImageData;
-
-                    // Send the booking notification message
-                    const messageResponse = await api.post(
-                        '/api/data/messages/send-message',
-                        bookingMessageData,
-                        { withCredentials: true }
-                    );
-
-                    console.log('Booking notification sent successfully:', messageResponse.data);
-                } catch (messageError) {
-                    console.error('Failed to send booking notification:', messageError);
-                    // Don't fail the booking if message sending fails
+                    await sendBookingNotification(data, bookingData);
+                } catch (notificationError) {
+                    console.error('Failed to send booking notification:', notificationError);
                 }
-
+                
                 // Show success message
                 alert('Booking confirmed! You will be redirected to messages to chat with your host.');
                 
-                // Navigate to messages page
-                navigate('/messages');
+                // Navigate to messages page with listing data
+                navigate('/messages', { 
+                    state: { 
+                        bookingNotification: {
+                            type: 'booking_confirmed',
+                            listing: {
+                                id: data.id,
+                                title: data.title,
+                                image: data.images?.[0] || data.image,
+                                host_id: data.host_id
+                            },
+                            booking: bookingData
+                        }
+                    } 
+                });
             } else {
                 alert('Booking failed: ' + (response.data.message || 'Unknown error'));
             }
