@@ -1,0 +1,48 @@
+export const Rooms = [
+    {
+      id: 1,
+      image: "https://a0.muscache.com/im/pictures/hosting/Hosting-1204108136330055639/original/a4397bb2-8805-4682-98ce-8640fed0923c.jpeg?im_w=960",
+      title: "Living Room",
+      subtitle: "Spacious and cozy living area",
+      img1: "https://a0.muscache.com/im/pictures/hosting/Hosting-1204108136330055639/original/a4397bb2-8805-4682-98ce-8640fed0923c.jpeg?im_w=1200",
+      img2: "https://a0.muscache.com/im/pictures/hosting/Hosting-1204108136330055639/original/e0b35c6d-4c47-4c9c-b3bc-32d5ad2177e4.jpeg?im_w=720",
+      img3: "https://a0.muscache.com/im/pictures/hosting/Hosting-1204108136330055639/original/43053990-24b3-4ea9-a112-4c675335f912.jpeg?im_w=720",
+    },
+    {
+      id: 2,
+      image: "https://a0.muscache.com/im/pictures/hosting/Hosting-1204108136330055639/original/b6e2bf6b-76ad-4525-98e5-656133b89fed.jpeg?im_w=960",
+      title: "Full Kitchen",
+      subtitle: "Modern kitchen with appliances",
+      img1: "https://a0.muscache.com/im/pictures/hosting/Hosting-1204108136330055639/original/b6e2bf6b-76ad-4525-98e5-656133b89fed.jpeg?im_w=720",
+      img2: "https://a0.muscache.com/im/pictures/hosting/Hosting-1204108136330055639/original/2ee99ab2-dab3-4cc5-8564-9f1431843b39.jpeg?im_w=720",
+      img3: "https://a0.muscache.com/im/pictures/hosting/Hosting-1204108136330055639/original/e5557a08-8269-4473-9efa-eb5eeb1cf3ef.jpeg?im_w=720",
+    },
+    {
+      id: 3,
+      image: "https://a0.muscache.com/im/pictures/hosting/Hosting-1204108136330055639/original/70741d2c-e1c3-4da3-8dfc-f57e01105901.jpeg?im_w=960",
+      title: "Dining Room",
+      subtitle: "Comfortable dining area",
+      img1: "https://a0.muscache.com/im/pictures/hosting/Hosting-1204108136330055639/original/70741d2c-e1c3-4da3-8dfc-f57e01105901.jpeg?im_w=720",
+      img2: "https://a0.muscache.com/im/pictures/hosting/Hosting-1204108136330055639/original/a7dc89f2-6159-43de-a929-19d079066503.jpeg?im_w=720",
+      img3: "https://a0.muscache.com/im/pictures/hosting/Hosting-1204108136330055639/original/a1b88c60-c835-4deb-bf56-e5fde83d54ef.jpeg?im_w=720",
+    },
+    {
+      id: 4,
+      image: "https://a0.muscache.com/im/pictures/hosting/Hosting-1204108136330055639/original/6e960587-d8cb-4824-9da3-46d59b4dbcdd.jpeg?im_w=960",
+      title: "Bedroom",
+      subtitle: "Cozy bedroom with natural light",
+      img1: "https://a0.muscache.com/im/pictures/hosting/Hosting-1204108136330055639/original/6e960587-d8cb-4824-9da3-46d59b4dbcdd.jpeg?im_w=1200",
+      img2: "https://a0.muscache.com/im/pictures/hosting/Hosting-1204108136330055639/original/3fe89122-ecbd-4e63-baae-af1f6c90e94c.jpeg?im_w=1200",
+      img3: "https://a0.muscache.com/im/pictures/hosting/Hosting-1204108136330055639/original/75eafbc2-a820-4218-8b0d-728e5654c85f.jpeg?im_w=720",
+    },
+    {
+      id: 5,
+      image: "https://a0.muscache.com/im/pictures/hosting/Hosting-1204108136330055639/original/05941158-83a1-45b2-8aa5-f2dba3beb8df.jpeg?im_w=960",
+      title: "Bathroom",
+      subtitle: "Clean and modern bathroom",
+      img1: "https://a0.muscache.com/im/pictures/hosting/Hosting-1204108136330055639/original/05941158-83a1-45b2-8aa5-f2dba3beb8df.jpeg?im_w=1200",
+      img2: "https://a0.muscache.com/im/pictures/hosting/Hosting-1204108136330055639/original/96783ed0-4e58-4a7c-8902-1504cd6b7967.jpeg?im_w=720",
+      img3: "https://a0.muscache.com/im/pictures/hosting/Hosting-1204108136330055639/original/2a466724-c9d6-4336-b7fb-1af6904a1bdc.jpeg?im_w=720",
+    },
+  ];
+  

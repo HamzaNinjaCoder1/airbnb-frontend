@@ -1,0 +1,306 @@
+@import "slick-carousel/slick/slick.css";
+@import "slick-carousel/slick/slick-theme.css";
+
+.months-circular-slider {
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.12));
+}
+
+/* Target internal svg elements rendered by @fseehawer/react-circular-slider */
+.months-circular-slider svg {
+  overflow: visible;
+}
+
+/* Progress arc shadow and glow using current Airbnb brand gradient colors */
+.months-circular-slider [class*="CircularSlider__progress"],
+.months-circular-slider path[stroke*="#E61E4D"],
+.months-circular-slider path[stroke*="#D70466"] {
+  filter: drop-shadow(0 2px 6px rgba(230, 30, 77, 0.45)) drop-shadow(0 6px 18px rgba(215, 4, 102, 0.25));
+}
+
+/* Track subtle inset to make percentage fill stand out */
+.months-circular-slider [class*="CircularSlider__track"],
+.months-circular-slider path[stroke="#F7F7F7"] {
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.08));
+}
+
+/* Knob ring with layered shadow */
+.months-circular-slider [class*="CircularSlider__knob"],
+.months-circular-slider circle[r="30"],
+.months-circular-slider circle[r="29"],
+.months-circular-slider circle[r="28"] {
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.2)) drop-shadow(0 6px 12px rgba(0,0,0,0.18));
+}
+
+/* Ensure brand variables exist as fallbacks for shadows/gradients */
+:root {
+  /* --linaria-theme_palette-bg-primary-plus and inverse variants are set in JS, but define fallbacks */
+  --linaria-theme_palette-bg-primary-plus: #92174D;
+  --linaria-theme_palette-bg-primary-inverse: #222222;
+  --linaria-theme_palette-bg-primary-inverse-hover: #000000;
+  --linaria-theme_palette-bg-primary-inverse-disabled: #DDDDDD;
+  --linaria-theme_palette-bg-primary-inverse-error: #C13515;
+  --linaria-theme_palette-bg-primary-inverse-error-hover: #C13515;
+}
+
+.slick-prev,
+.slick-next {
+  position: absolute !important;
+  top: 0px !important;
+  margin-top: -32px;
+  transform: none !important;
+  z-index: 10 !important;
+  background: none !important; 
+}
+
+.slick-prev {
+  left: auto !important;
+  right: 40px !important;
+}
+
+.slick-next {
+  left: auto !important;
+  right: 16px !important; 
+}
+
+.slick-prev:before,
+.slick-next:before {
+  color: rgb(27, 27, 27) !important;
+  font-size: 23px !important; 
+  font-weight: 600 !important;
+}
+
+.rdrInRange{
+  background-color: rgb(247, 247, 247) !important;
+  height: 40px !important;
+  color: black !important;
+  margin-top: -2.6px !important;
+}
+
+.rdrDay:has(.rdrStartEdge) .rdrDayNumber,
+.rdrDay:has(.rdrEndEdge) .rdrDayNumber {
+  background: black !important;
+  color: white !important;
+  border-radius: 50% !important;
+  width: 90% !important;
+  margin: auto !important;
+  height: 91% !important;
+}
+
+.rdrStartEdge{
+  background-color: rgb(247, 247, 247)  !important;
+  height: 40px !important;
+  margin-top: -2.6px !important;
+}
+
+.rdrEndEdge{
+  background-color: rgb(247, 247, 247) !important;
+  height: 40px !important;
+  margin-top: -2.6px !important;
+}
+
+.rdrDayInPreview {
+  background: rgba(180, 180, 180, 0.1) !important;  
+  border: none !important;
+}
+
+.rdrDayStartPreview,
+.rdrDayEndPreview  {
+  background: transparent !important;
+  border: 1px solid black !important;
+  border-radius: 50% !important;
+  color: black !important;
+  width: 40px !important;
+  height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: auto !important;
+}
+
+.rdrDay {
+  font-size: 15px !important;
+  font-weight: bolder !important;
+}
+
+.rdrDayNumber {
+  font-weight: 500 !important;
+}
+
+.rdrMonthPicker, .rdrYearPicker{
+  display: none !important;
+}
+
+.rdrMonthName{
+  text-align: center !important;
+  font-size: 17px;
+  color: black !important;
+  margin-top: -51px !important;
+}
+
+.rdrDay.rdrDayDisabled .rdrDayNumber span {
+  text-decoration: line-through !important;
+}
+
+.rdrDayDisabled{
+  background-color: transparent !important;
+  color: rgb(92, 92, 92) !important;
+}
+
+.rdrInRange ~ .rdrDayNumber span {
+  color: black !important;
+}
+
+.rdrMonths {
+  display: flex;
+  gap: 20px;
+}
+
+.rdrDay {
+  flex: 1 0 calc(14.28% - 4px); 
+}
+
+.rdrWeekDay{
+  font-size: 14px !important;
+  font-weight: 500 !important;
+}
+
+.rdrNextPrevButton i {
+  display: none !important;
+  background-color: transparent !important;
+}
+
+.rdrNextPrevButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: transparent !important;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.rdrPprevButton::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' fill='black' viewBox='0 0 24 24'><polyline points='15 18 9 12 15 6' stroke='black' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' fill='black' viewBox='0 0 24 24'><polyline points='15 18 9 12 15 6' stroke='black' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background: black;
+  margin-top: 2px !important;
+  margin-left: 13px !important;
+}
+
+.rdrNextButton::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' fill='black' viewBox='0 0 24 24'><polyline points='9 18 15 12 9 6' stroke='black' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' fill='black' viewBox='0 0 24 24'><polyline points='9 18 15 12 9 6' stroke='black' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background: black;
+  margin-top: 2px !important;
+  margin-left: -13px !important;
+}
+
+.rdrMonth {
+  width: 360px !important; 
+  min-width: 360px !important;
+}
+
+.sticky-element {
+  position: sticky;
+  top: 100px; 
+}
+
+/* CityExplore card slider: hide arrows by default, show on hover */
+.card-slider .slick-prev,
+.card-slider .slick-next {
+  opacity: 0 !important;
+  transition: opacity 0.2s ease !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: 28px !important;
+  height: 28px !important;
+  background: rgba(0,0,0,0.35) !important;
+  border-radius: 9999px !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+.card-slider:hover .slick-prev,
+.card-slider:hover .slick-next {
+  opacity: 1 !important;
+}
+.card-slider .slick-prev { left: 8px !important; }
+.card-slider .slick-next { right: 8px !important; }
+.card-slider .slick-prev:before,
+.card-slider .slick-next:before {
+  color: white !important;
+  text-shadow: 0 0 4px rgba(0,0,0,0.6) !important;
+  font-size: 18px !important;
+}
+.card-slider .slick-prev:before { content: '‹' !important; }
+.card-slider .slick-next:before { content: '›' !important; }
+.card-slider .slick-prev.slick-disabled,
+.card-slider .slick-next.slick-disabled { opacity: 0 !important; }
+.card-slider .slick-dots li button:before {
+  font-size: 8px !important;
+}
+.card-slider .slick-dots {
+  bottom: 8px !important;
+}
+
+/* Lightweight per-card carousel controls */
+.mini-carousel .mini-prev,
+.mini-carousel .mini-next {
+  position: absolute;
+  top: 40%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.35));
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 9999px;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.15s ease, background 0.2s ease;
+  backdrop-filter: blur(2px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+  cursor: pointer;
+}
+.mini-carousel:hover .mini-prev,
+.mini-carousel:hover .mini-next {
+  opacity: 1;
+}
+.mini-carousel .mini-prev { left: 8px; }
+.mini-carousel .mini-next { right: 8px; }
+.mini-carousel .mini-prev::before,
+.mini-carousel .mini-next::before {
+  content: '';
+  display: block;
+  width: 100%;
+  height: 100%;
+  color: white;
+}
+.mini-carousel .mini-prev::before { content: '‹'; font-size: 22px; line-height: 40px; margin-top: -12px; font-weight: 500; text-align: center; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,0.6); }
+.mini-carousel .mini-next::before { content: '›'; font-size: 22px; line-height: 40px; margin-top: -12px; font-weight: 500; text-align: center; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,0.6); }
+.mini-carousel .mini-prev:hover,
+.mini-carousel .mini-next:hover {
+  transform: translateY(-50%) scale(1.06);
+  background: linear-gradient(180deg, rgba(0,0,0,0.75), rgba(0,0,0,0.45));
+}
+.mini-carousel .mini-prev:active,
+.mini-carousel .mini-next:active {
+  transform: translateY(-50%) scale(0.98);
+}
+.mini-carousel .mini-prev:focus-visible,
+.mini-carousel .mini-next:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+.mini-carousel .mini-dots { position: absolute; left: 0; right: 0; bottom: 8px; display: flex; gap: 6px; justify-content: center; }
+.mini-carousel .mini-dot { width: 7px; height: 7px; border-radius: 9999px; background: rgba(255,255,255,0.65); border: 1px solid rgba(0,0,0,0.3); transition: transform 0.15s ease, background 0.2s ease; }
+.mini-carousel .mini-dot:hover { transform: scale(1.15); background: #fff; }
+.mini-carousel .mini-dot.active { background: #fff; box-shadow: 0 0 0 2px rgba(0,0,0,0.15) inset; }
