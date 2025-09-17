@@ -34,11 +34,14 @@ export async function subscribeUser() {
     const response = await api.post(
       "/api/data/subscribe",
       { 
-        subscription,
-        userAgent: navigator.userAgent,
-        origin: window.location.origin
+        subscription
       },
-      { withCredentials: true }
+      { 
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
     );
     
     console.log("User subscribed for push notifications:", subscription);

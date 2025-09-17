@@ -515,11 +515,16 @@ function Reserve({ selectedDates, setSelectedDates }) {
             // Send notification via API to your production backend
             try {
                 const response = await api.post('/api/data/notifications/send-booking', {
-                    host_id: listingData.host_id,
-                    notification: notificationData,
-                    origin: window.location.origin,
-                    userAgent: navigator.userAgent
-                }, { withCredentials: true });
+                    guestId: user.id, // Current user ID (guest who made the booking)
+                    listingId: bookingData.listing_id, // The listing being booked
+                    bookingId: bookingData.listing_id, // Booking ID (using listing ID as fallback)
+                    message: `A new booking has been made for your listing "${listingData.title}". Check-in: ${bookingData.check_in_date}, Check-out: ${bookingData.check_out_date}, Guests: ${bookingData.guests}`
+                }, { 
+                    withCredentials: true,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
                 console.log('Booking notification sent successfully:', response.data);
             } catch (apiError) {
                 console.warn('Failed to send notification via API, but booking was successful:', apiError);
