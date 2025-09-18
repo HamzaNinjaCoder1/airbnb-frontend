@@ -52,27 +52,30 @@ const ListingDetail = () => {
     const fetchDetails = async () => {
       try {
         setLoading(true);
-        // There is no explicit get-by-id endpoint referenced in code; backend save-exit supports listingId.
-        // Use a listings-by-host endpoint then pick by id as fallback.
-        // Prefer dedicated endpoint if available: /api/data/listings/by-id?listingId=...
-        try {
-          const resById = await api.get(`/api/data/listings/by-id?listingId=${listingId}`);
-          if (resById?.data?.success && resById.data?.data) {
-            const d = resById.data.data;
-            setData(d);
-            setImages(Array.isArray(d.images) ? d.images : []);
-            setLoading(false);
+        const hostId = hostIdFromQs || user?.id;
+        // 1) Find listing meta (including city) for this host
+        const resMeta = await api.get(`/api/data/listings/HostListingImages?hostId=${hostId}`);
+        const list = resMeta?.data?.data || [];
+        const foundMeta = list.find((l) => String(l.id || l.listing_id) === String(listingId));
+        if (!foundMeta) throw new Error('Listing not found');
+
+        // 2) Load full listing data by city and filter by id
+        const city = foundMeta.city;
+        if (city) {
+          const resCity = await api.get(`/api/data/listing/city/${encodeURIComponent(city)}`);
+          const cityListings = Array.isArray(resCity?.data) ? resCity.data : [];
+          const full = cityListings.find((it) => String(it.id) === String(foundMeta.listing_id || foundMeta.id));
+          if (full) {
+            // backend returns images as objects in relations, map to strings
+            const imgs = Array.isArray(full.images) ? full.images.map((im) => im.image_url || im) : [];
+            setData({ ...full });
+            setImages(imgs);
             return;
           }
-        } catch (_) {}
-
-        const hostId = hostIdFromQs || user?.id;
-        const res = await api.get(`/api/data/listings/HostListingImages?hostId=${hostId}`);
-        const list = res?.data?.data || [];
-        const found = list.find((l) => String(l.id || l.listing_id) === String(listingId));
-        if (!found) throw new Error('Listing not found');
-        setData(found);
-        setImages(Array.isArray(found.images) ? found.images : []);
+        }
+        // 3) Fallback to meta only
+        setData(foundMeta);
+        setImages(Array.isArray(foundMeta.images) ? foundMeta.images : []);
       } catch (e) {
         setError(e?.message || 'Failed to load listing');
       } finally {
@@ -115,23 +118,25 @@ const ListingDetail = () => {
     const form = new FormData();
     form.append('images', file);
     await api.post(`/api/data/upload-images?hostId=${hostIdFromQs}&listingId=${listingId}`, form);
-    // After upload, refresh details
-    try {
-      const resById = await api.get(`/api/data/listings/by-id?listingId=${listingId}`);
-      if (resById?.data?.success && resById.data?.data) {
-        const d = resById.data.data;
-        setData(d);
-        setImages(Array.isArray(d.images) ? d.images : []);
-        return;
-      }
-    } catch (_) {}
-    // Fallback refresh via host list
-    const res = await api.get(`/api/data/listings/HostListingImages?hostId=${hostIdFromQs}`);
-    const list = res?.data?.data || [];
-    const found = list.find((l) => String(l.id || l.listing_id) === String(listingId));
-    if (found) {
-      setData(found);
-      setImages(Array.isArray(found.images) ? found.images : []);
+    // After upload, refresh via host list (and city for full details)
+    const resMeta = await api.get(`/api/data/listings/HostListingImages?hostId=${hostIdFromQs}`);
+    const list = resMeta?.data?.data || [];
+    const foundMeta = list.find((l) => String(l.id || l.listing_id) === String(listingId));
+    const latestImages = Array.isArray(foundMeta?.images) ? foundMeta.images : [];
+    // Try to identify newly added filename(s)
+    const added = latestImages.find((img) => !images.includes(img));
+    if (added) {
+      const next = [...images];
+      if (index < next.length) next[index] = added; else next.push(added);
+      setImages(next);
+    } else {
+      setImages(latestImages);
+    }
+    if (foundMeta?.city) {
+      const resCity = await api.get(`/api/data/listing/city/${encodeURIComponent(foundMeta.city)}`);
+      const cityListings = Array.isArray(resCity?.data) ? resCity.data : [];
+      const full = cityListings.find((it) => String(it.id) === String(foundMeta.listing_id || foundMeta.id));
+      if (full) setData({ ...full });
     }
   };
 
@@ -140,9 +145,12 @@ const ListingDetail = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="flex items-center justify-between px-6 py-4 border-b">
+      <div className="flex items-center justify-between px-6 py-4 border-b bg-white/70 backdrop-blur">
         <button onClick={() => navigate(hostIdFromQs ? `/listings/${hostIdFromQs}` : '/listings')} className="px-3 py-2 rounded-lg border hover:bg-gray-50">Back</button>
-        <div className="text-lg font-semibold">Listing details</div>
+        <div className="flex items-center gap-3">
+          <div className="text-lg font-semibold truncate max-w-[16rem]">{data?.title || 'Listing details'}</div>
+          <div className="text-sm text-gray-600">${Number(data?.price_per_night || 0)}</div>
+        </div>
         <button onClick={handleSave} disabled={saving} className={`px-4 py-2 rounded-lg ${saving ? 'bg-black/30 text-white/70' : 'bg-black text-white hover:bg-gray-900'}`}>{saving ? 'Saving...' : 'Save changes'}</button>
       </div>
 
@@ -154,7 +162,6 @@ const ListingDetail = () => {
 
       <div className="max-w-6xl mx-auto px-6 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          {/* Images grid: show first 5 slots editable, plus an Add image tile */}
           <div>
             <div className="text-base font-medium mb-2">Photos</div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -173,7 +180,6 @@ const ListingDetail = () => {
                   </div>
                 );
               })}
-              {/* Add image button */}
               <div className="relative group rounded-xl overflow-hidden bg-gray-50 border border-dashed border-gray-300 h-40 flex items-center justify-center">
                 <label className="px-4 py-2 rounded-lg bg-black text-white hover:bg-gray-900 cursor-pointer text-sm">Add photo
                   <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleReplaceImage(images.length, e.target.files[0])} />
@@ -182,7 +188,6 @@ const ListingDetail = () => {
             </div>
           </div>
 
-          {/* Description */}
           <div className="space-y-2">
             <EditableField label="Title" value={data?.title} onChange={(v) => setData((d) => ({ ...d, title: v }))} />
             <EditableField label="Description" value={data?.description} onChange={(v) => setData((d) => ({ ...d, description: v }))} type="textarea" />
