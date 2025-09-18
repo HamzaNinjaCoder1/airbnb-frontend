@@ -67,7 +67,7 @@ const ListingDetail = () => {
           const cityListings = Array.isArray(resCity?.data) ? resCity.data : [];
           const full = cityListings.find((it) => String(it.id) === String(foundMeta.listing_id || foundMeta.id));
           if (full) {
-            // keep image objects to retain ids for replacement
+            // keep objects to retain ids for replacement
             const imgs = Array.isArray(full.images) ? full.images : [];
             setData({ ...full });
             setImages(imgs);
@@ -76,7 +76,8 @@ const ListingDetail = () => {
         }
         // 3) Fallback to meta only
         setData(foundMeta);
-        setImages(Array.isArray(foundMeta.images) ? foundMeta.images : []);
+        const metaImgs = Array.isArray(foundMeta.images) ? foundMeta.images.map((f) => ({ image_url: f })) : [];
+        setImages(metaImgs);
       } catch (e) {
         setError(e?.message || 'Failed to load listing');
       } finally {
@@ -118,21 +119,25 @@ const ListingDetail = () => {
     const current = images[index];
     const imageId = current && typeof current === 'object' && current.id ? current.id : null;
     if (imageId) {
-      // Replace existing image using backend endpoint
+      // Replace existing image via PUT endpoint with auth
       const form = new FormData();
       form.append('image', file);
-      const res = await api.patch(`/api/listings/${listingId}/images/${imageId}/replace?hostId=${hostIdFromQs}`, form);
+      const token = localStorage.getItem('token');
+      const res = await api.put(`/api/data/listings/${listingId}/images/${imageId}/replace`, form, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
       const updated = res?.data?.images;
       if (Array.isArray(updated)) {
         setImages(updated);
         return;
       }
+    } else {
+      // Add new image
+      const addForm = new FormData();
+      addForm.append('images', file);
+      await api.post(`/api/data/upload-images?hostId=${hostIdFromQs}&listingId=${listingId}`, addForm);
     }
-    // If empty slot (no imageId), add as new image then refresh
-    const addForm = new FormData();
-    addForm.append('images', file);
-    await api.post(`/api/data/upload-images?hostId=${hostIdFromQs}&listingId=${listingId}`, addForm);
-    // Refresh full data by city to get fresh image objects with ids
+    // Refresh: get meta then city full details
     const resMeta = await api.get(`/api/data/listings/HostListingImages?hostId=${hostIdFromQs}`);
     const list = resMeta?.data?.data || [];
     const foundMeta = list.find((l) => String(l.id || l.listing_id) === String(listingId));
@@ -140,8 +145,14 @@ const ListingDetail = () => {
       const resCity = await api.get(`/api/data/listing/city/${encodeURIComponent(foundMeta.city)}`);
       const cityListings = Array.isArray(resCity?.data) ? resCity.data : [];
       const full = cityListings.find((it) => String(it.id) === String(foundMeta.listing_id || foundMeta.id));
-      if (full && Array.isArray(full.images)) setImages(full.images);
+      if (full && Array.isArray(full.images)) {
+        setImages(full.images);
+        setData({ ...full });
+        return;
+      }
     }
+    const latest = Array.isArray(foundMeta?.images) ? foundMeta.images.map((f) => ({ image_url: f })) : [];
+    setImages(latest);
   };
 
   if (!isAuthenticated) return null;
