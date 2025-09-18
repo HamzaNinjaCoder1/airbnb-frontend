@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import api from './api';
 
-function PhotosUpload({ progress, setProgress }) {
+function PhotosUpload({ progress, setProgress, existingData }) {
     const { isAuthenticated, user } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
@@ -24,6 +24,29 @@ function PhotosUpload({ progress, setProgress }) {
         const m = setTimeout(() => setIsMounted(true), 0);
         return () => { clearTimeout(t); clearTimeout(m); };
     }, []);
+
+    // Hydrate previously uploaded images (server or local) into the display grid
+    useEffect(() => {
+        try {
+            const serverImages = Array.isArray(existingData?.images) ? existingData.images : [];
+            const normalizedServer = serverImages
+                .filter(Boolean)
+                .map((src) => ({ id: `${src}-${Math.random()}`, file: null, url: src.startsWith('http') ? src : src }));
+
+            const key = `listing:${hostId || 'anon'}:${listingId || 'new'}`;
+            const localRaw = localStorage.getItem(key);
+            const local = localRaw ? JSON.parse(localRaw) : {};
+            const localImages = Array.isArray(local.images) ? local.images : [];
+            const normalizedLocal = localImages
+                .filter(Boolean)
+                .map((src) => ({ id: `${src}-${Math.random()}`, file: null, url: src }));
+
+            const combined = [...normalizedServer, ...normalizedLocal];
+            if (combined.length > 0) {
+                setUploadedPhotos(combined);
+            }
+        } catch (_) {}
+    }, [existingData, hostId, listingId]);
 
     useEffect(() => {
         return () => {
@@ -102,6 +125,17 @@ function PhotosUpload({ progress, setProgress }) {
         );
     };
 
+    // Persist URLs of currently shown images locally for edit prefill
+    const persistLocalImages = () => {
+        try {
+            const key = `listing:${hostId || 'anon'}:${listingId || 'new'}`;
+            const prev = localStorage.getItem(key);
+            const obj = prev ? JSON.parse(prev) : {};
+            const urls = uploadedPhotos.map((p) => p.url).filter(Boolean);
+            localStorage.setItem(key, JSON.stringify({ ...obj, images: urls }));
+        } catch (_) {}
+    };
+
     const handleSaveAndExit = async () => {
         if (isSaving) return;
         setIsSaving(true);
@@ -121,6 +155,7 @@ function PhotosUpload({ progress, setProgress }) {
         setIsSaving(true);
         try {
             await uploadImagesIfAny();
+            persistLocalImages();
             await saveListingProgress({ current_step: 'title' });
             const urlWithHostId = hostId ? `/aboutplace/title?hostId=${hostId}${listingId ? `&listingId=${listingId}` : ''}` : '/aboutplace/title';
             navigate(urlWithHostId, { state: { progress } });

@@ -16,6 +16,29 @@ function TitleStep({ progress, setProgress }) {
     const [isMounted, setIsMounted] = useState(false);
     const [title, setTitle] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    const [didHydrate, setDidHydrate] = useState(false);
+
+    // Prefill from existing data provided by HostWrapper or from local storage
+    useEffect(() => {
+        if (didHydrate) return;
+        try {
+            // Prefer existingData injected by HostWrapper via props (accessed from location.state or window)
+            const anyProps = (location && location.state) || {};
+            const injected = anyProps.existingData || null;
+            let initial = injected?.title;
+            if (!initial) {
+                const id = listingId || 'new';
+                const key = `listing:${hostId || 'anon'}:${id}`;
+                const localRaw = localStorage.getItem(key);
+                const local = localRaw ? JSON.parse(localRaw) : {};
+                initial = local.title;
+            }
+            if (typeof initial === 'string' && initial.trim()) {
+                setTitle(initial.trim().slice(0, 50));
+            }
+        } catch (_) {}
+        setDidHydrate(true);
+    }, [didHydrate, hostId, listingId, location]);
 
     useEffect(() => {
         const m = setTimeout(() => setIsMounted(true), 0);
