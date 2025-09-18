@@ -1,3 +1,12 @@
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
+const FRONTEND_ORIGIN = 'https://airbnb-frontend-sooty.vercel.app';
+
 self.addEventListener("push", function (event) {
     if (!event.data) return;
   
@@ -36,19 +45,19 @@ self.addEventListener("notificationclick", function (event) {
       return;
     }
   
-    // Determine the correct frontend origin to open
-    const preferredOrigin = event.notification?.data?.frontend_origin || event.notification?.data?.origin || 'https://airbnb-frontend-sooty.vercel.app';
-    const origin = preferredOrigin || self.location.origin;
+    // Always use production frontend origin
+    const origin = FRONTEND_ORIGIN;
+    const nData = event.notification.data || {};
     
-    if (event.notification.data?.conversation_id) {
+    if (nData.conversation_id) {
       event.waitUntil(
-        clients.openWindow(`${origin}/messages?conversationId=${event.notification.data.conversation_id}`)
+        clients.openWindow(`${origin}/messages?conversationId=${nData.conversation_id}`)
       );
-    } else if (event.notification.data?.listing_id) {
+    } else if (nData.listing_id) {
       event.waitUntil(
-        clients.openWindow(`${origin}/products/${event.notification.data.listing_id}`)
+        clients.openWindow(`${origin}/products/${nData.listing_id}`)
       );
-    } else if (event.notification.data?.type === 'booking_confirmation') {
+    } else if (nData.type === 'booking_confirmation') {
       // For booking notifications, always redirect to messages page
       event.waitUntil(
         clients.openWindow(`${origin}/messages`)
