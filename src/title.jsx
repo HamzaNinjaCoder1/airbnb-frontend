@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import api from './api';
 
-function TitleStep({ progress, setProgress }) {
+function TitleStep({ progress, setProgress, existingData }) {
     const navigate = useNavigate();
     const location = useLocation();
     const [searchParams] = useSearchParams();
@@ -22,10 +22,8 @@ function TitleStep({ progress, setProgress }) {
     useEffect(() => {
         if (didHydrate) return;
         try {
-            // Prefer existingData injected by HostWrapper via props (accessed from location.state or window)
-            const anyProps = (location && location.state) || {};
-            const injected = anyProps.existingData || null;
-            let initial = injected?.title;
+            // Prefer existingData injected by HostWrapper via props
+            let initial = existingData?.title;
             if (!initial) {
                 const id = listingId || 'new';
                 const key = `listing:${hostId || 'anon'}:${id}`;
@@ -38,7 +36,7 @@ function TitleStep({ progress, setProgress }) {
             }
         } catch (_) {}
         setDidHydrate(true);
-    }, [didHydrate, hostId, listingId, location]);
+    }, [didHydrate, hostId, listingId, existingData]);
 
     useEffect(() => {
         const m = setTimeout(() => setIsMounted(true), 0);
