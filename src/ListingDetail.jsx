@@ -142,7 +142,6 @@ const ListingDetail = () => {
 
       const updatedListing = res?.data?.listing;
       if (updatedListing && Array.isArray(updatedListing.images)) {
-        // Find the updated image by id and replace just that index
         const updatedImage = updatedListing.images.find((im) => String(im.id) === String(imageId));
         if (updatedImage) {
           const next = [...images];
