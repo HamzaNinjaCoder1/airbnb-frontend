@@ -36,8 +36,9 @@ self.addEventListener("notificationclick", function (event) {
       return;
     }
   
-    // Get the current origin to ensure proper URL construction
-    const origin = self.location.origin;
+    // Determine the correct frontend origin to open
+    const preferredOrigin = event.notification?.data?.frontend_origin || event.notification?.data?.origin || 'https://airbnb-frontend-sooty.vercel.app';
+    const origin = preferredOrigin || self.location.origin;
     
     if (event.notification.data?.conversation_id) {
       event.waitUntil(

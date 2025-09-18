@@ -8,7 +8,6 @@ const api = axios.create({
   }
 });
 
-// Request interceptor to ensure all requests have proper headers
 api.interceptors.request.use(
   (config) => {
     // Ensure Content-Type is set for POST, PUT, PATCH requests

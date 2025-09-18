@@ -95,6 +95,58 @@ const BookingNotification = ({ notification, onDismiss }) => {
 	);
 };
 
+// Parse and render booking confirmation sent as plain text message
+const isBookingTextMessage = (text) => {
+    if (!text || typeof text !== 'string') return false;
+    return text.startsWith('Booking Confirmed!') && text.includes('A new booking has been made for your listing');
+};
+
+const parseBookingTextMessage = (text) => {
+    try {
+        const lines = text.split(/\n+/).map(l => l.trim()).filter(Boolean);
+        // Expected format based on requirements
+        // 0: Booking Confirmed!
+        // 1: A new booking has been made for your listing "Title".
+        // 2: Check-in: YYYY-MM-DD
+        // 3: Check-out: YYYY-MM-DD
+        // 4: Guests: N
+        // 5: Total: $XXX
+        const titleMatch = lines[1]?.match(/"(.+?)"/);
+        const title = titleMatch ? titleMatch[1] : undefined;
+        const checkIn = lines.find(l => l.startsWith('Check-in:'))?.split(':')[1]?.trim();
+        const checkOut = lines.find(l => l.startsWith('Check-out:'))?.split(':')[1]?.trim();
+        const guestsStr = lines.find(l => l.startsWith('Guests:'))?.split(':')[1]?.trim();
+        const guests = guestsStr ? parseInt(guestsStr, 10) : undefined;
+        const totalStr = lines.find(l => l.startsWith('Total:'))?.split(':')[1]?.trim();
+        const total = totalStr || undefined;
+        return { title, checkIn, checkOut, guests, total };
+    } catch (_) {
+        return null;
+    }
+};
+
+const BookingInlineCard = ({ data }) => {
+    if (!data) return null;
+    const { title, checkIn, checkOut, guests, total } = data;
+    return (
+        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+            <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <span className="text-sm font-semibold text-green-800">Booking Confirmed!</span>
+            </div>
+            <p className="text-sm text-gray-800">
+                A new booking has been made for your listing <span className="font-semibold">"{title || 'Apartment'}"</span>.
+            </p>
+            <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-sm text-gray-700">
+                <div>Check-in: {checkIn}</div>
+                <div>Check-out: {checkOut}</div>
+                <div>Guests: {typeof guests === 'number' ? guests : ''}</div>
+                <div>Total: {total}</div>
+            </div>
+        </div>
+    );
+};
+
 function Messages() {
 	const navigate = useNavigate()
 	const location = useLocation()
@@ -700,9 +752,15 @@ function Messages() {
 										return (
 											<div key={`${m.id}-${m.created_at}-${i}`} className={`flex ${fromMe ? 'justify-end' : 'justify-start'} group`}>
 												<div className={`relative max-w-[75%] ${fromMe ? 'ml-16' : 'mr-16'}`}>
-											{/* Message bubble */}
+												{/* Message bubble */}
 													<div className={`${fromMe ? 'bg-black text-white' : 'bg-white text-gray-900 border border-gray-200'} px-4 py-3 rounded-2xl shadow-sm relative`}> 
-														<p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{m.message_text}</p>
+														{isBookingTextMessage(m.message_text) ? (
+															<div className={`${fromMe ? 'text-white' : 'text-gray-900'}`}>
+																<BookingInlineCard data={parseBookingTextMessage(m.message_text)} />
+															</div>
+														) : (
+															<p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{m.message_text}</p>
+														)}
 														<div className={`flex items-center justify-end gap-2 mt-2 ${fromMe ? 'text-gray-300' : 'text-gray-400'}`}>
 															<span className="text-xs font-medium">{formatTime(m.created_at)}</span>
 															<MessageStatus status={m.status} fromMe={fromMe} />
@@ -938,8 +996,14 @@ function Messages() {
 												<div key={`${m.id}-${m.created_at}-${i}`} className={`flex ${fromMe ? 'justify-end' : 'justify-start'} group`}>
 													<div className={`relative max-w-[85%] ${fromMe ? 'ml-12' : 'mr-12'}`}>
 												{/* Message bubble */}
-														<div className={`${fromMe ? 'bg-black text-white' : 'bg-white text-gray-900 border border-gray-200'} px-4 py-3 rounded-2xl shadow-sm relative`}> 
+													<div className={`${fromMe ? 'bg-black text-white' : 'bg-white text-gray-900 border border-gray-200'} px-4 py-3 rounded-2xl shadow-sm relative`}> 
+														{isBookingTextMessage(m.message_text) ? (
+															<div className={`${fromMe ? 'text-white' : 'text-gray-900'}`}>
+																<BookingInlineCard data={parseBookingTextMessage(m.message_text)} />
+															</div>
+														) : (
 															<p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{m.message_text}</p>
+														)}
 															<div className={`flex items-center justify-end gap-2 mt-2 ${fromMe ? 'text-gray-300' : 'text-gray-400'}`}>
 																<span className="text-xs font-medium">{formatTime(m.created_at)}</span>
 																<MessageStatus status={m.status} fromMe={fromMe} />
