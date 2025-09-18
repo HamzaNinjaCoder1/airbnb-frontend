@@ -11,7 +11,11 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     // Ensure Content-Type is set for POST, PUT, PATCH requests
-    if (['post', 'put', 'patch'].includes(config.method?.toLowerCase())) {
+    // But do NOT force JSON when sending FormData (e.g., image uploads)
+    const method = config.method?.toLowerCase();
+    const isFormData = typeof FormData !== 'undefined' && config.data instanceof FormData;
+    const hasCustomContentType = !!config.headers['Content-Type'];
+    if (['post', 'put', 'patch'].includes(method) && !isFormData && !hasCustomContentType) {
       config.headers['Content-Type'] = 'application/json';
     }
     return config;

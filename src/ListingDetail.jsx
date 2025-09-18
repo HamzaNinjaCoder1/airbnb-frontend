@@ -114,9 +114,7 @@ const ListingDetail = () => {
     // Upload using same endpoint as Photosupload.jsx
     const form = new FormData();
     form.append('images', file);
-    await api.post(`/api/data/upload-images?hostId=${hostIdFromQs}&listingId=${listingId}`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    await api.post(`/api/data/upload-images?hostId=${hostIdFromQs}&listingId=${listingId}`, form);
     // After upload, refresh details
     try {
       const resById = await api.get(`/api/data/listings/by-id?listingId=${listingId}`);
@@ -156,7 +154,7 @@ const ListingDetail = () => {
 
       <div className="max-w-6xl mx-auto px-6 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          {/* Images grid: show first 5 slots editable */}
+          {/* Images grid: show first 5 slots editable, plus an Add image tile */}
           <div>
             <div className="text-base font-medium mb-2">Photos</div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -175,6 +173,12 @@ const ListingDetail = () => {
                   </div>
                 );
               })}
+              {/* Add image button */}
+              <div className="relative group rounded-xl overflow-hidden bg-gray-50 border border-dashed border-gray-300 h-40 flex items-center justify-center">
+                <label className="px-4 py-2 rounded-lg bg-black text-white hover:bg-gray-900 cursor-pointer text-sm">Add photo
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleReplaceImage(images.length, e.target.files[0])} />
+                </label>
+              </div>
             </div>
           </div>
 
@@ -189,6 +193,7 @@ const ListingDetail = () => {
           <div className="border rounded-xl p-4 space-y-4">
             <div className="text-base font-medium">Pricing</div>
             <EditableField label="Price per night" value={String(price)} onChange={(v) => setData((d) => ({ ...d, price_per_night: v.replace(/[^0-9]/g, '') }))} />
+            <div className="text-sm text-gray-600">Shown to guests: ${price}</div>
           </div>
 
           <div className="border rounded-xl p-4 space-y-4">
