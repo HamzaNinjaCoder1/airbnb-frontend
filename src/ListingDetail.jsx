@@ -129,17 +129,21 @@ const ListingDetail = () => {
         return;
       }
     } else {
-      // Add image
+      // Add image: prefer single-file endpoint first with field 'image'
       try {
-        const form = new FormData();
-        form.append('images', file);
-        await api.post(`/api/data/upload-images?hostId=${Number(hostIdFromQs)}&listingId=${Number(listingId)}`, form);
+        const single = new FormData();
+        single.append('image', file);
+        single.append('hostId', String(hostIdFromQs));
+        single.append('listingId', String(listingId));
+        await api.post(`/api/data/upload-image?hostId=${Number(hostIdFromQs)}&listingId=${Number(listingId)}`, single, { headers: { 'Content-Type': 'multipart/form-data' } });
       } catch (err) {
-        // Fallback to single-file endpoint
+        // Fallback to multi-file endpoint with field 'images'
         try {
-          const single = new FormData();
-          single.append('image', file);
-          await api.post(`/api/data/upload-image?hostId=${Number(hostIdFromQs)}&listingId=${Number(listingId)}`, single);
+          const multi = new FormData();
+          multi.append('images', file);
+          multi.append('hostId', String(hostIdFromQs));
+          multi.append('listingId', String(listingId));
+          await api.post(`/api/data/upload-images?hostId=${Number(hostIdFromQs)}&listingId=${Number(listingId)}`, multi, { headers: { 'Content-Type': 'multipart/form-data' } });
         } catch (err2) {
           const detail = err2?.response?.data?.message || err?.response?.data?.message || err2?.message || err?.message || 'Upload failed';
           setError(detail);
