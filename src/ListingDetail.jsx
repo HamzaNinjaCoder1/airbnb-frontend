@@ -45,6 +45,7 @@ const ListingDetail = () => {
   const getImageUrl = (img) => {
     if (!img) return '';
     if (typeof img === 'string') return img.startsWith('http') ? img : `${UPLOADS_BASE_URL}${img}`;
+    if (typeof img === 'object' && img.image_url) return String(img.image_url).startsWith('http') ? img.image_url : `${UPLOADS_BASE_URL}${img.image_url}`;
     return '';
   };
 
@@ -66,8 +67,8 @@ const ListingDetail = () => {
           const cityListings = Array.isArray(resCity?.data) ? resCity.data : [];
           const full = cityListings.find((it) => String(it.id) === String(foundMeta.listing_id || foundMeta.id));
           if (full) {
-            // backend returns images as objects in relations, map to strings
-            const imgs = Array.isArray(full.images) ? full.images.map((im) => im.image_url || im) : [];
+            // keep image objects to retain ids for replacement
+            const imgs = Array.isArray(full.images) ? full.images : [];
             setData({ ...full });
             setImages(imgs);
             return;
@@ -114,77 +115,32 @@ const ListingDetail = () => {
 
   const handleReplaceImage = async (index, file) => {
     if (!file || !hostIdFromQs) return;
-    const oldFilename = images[index];
-    if (oldFilename) {
-      try {
-        const form = new FormData();
-        form.append('image', file);
-        await api.post(
-          `/api/data/listing-image/replace?hostId=${Number(hostIdFromQs)}&listingId=${Number(listingId)}&oldFilename=${encodeURIComponent(oldFilename)}`,
-          form
-        );
-      } catch (err) {
-        const detail = err?.response?.data?.message || err?.message || 'Failed to replace image';
-        setError(detail);
+    const current = images[index];
+    const imageId = current && typeof current === 'object' && current.id ? current.id : null;
+    if (imageId) {
+      // Replace existing image using backend endpoint
+      const form = new FormData();
+      form.append('image', file);
+      const res = await api.patch(`/api/listings/${listingId}/images/${imageId}/replace?hostId=${hostIdFromQs}`, form);
+      const updated = res?.data?.images;
+      if (Array.isArray(updated)) {
+        setImages(updated);
         return;
       }
-    } else {
-      // Add image: prefer single-file endpoint first with field 'image'
-      try {
-        const single = new FormData();
-        single.append('image', file);
-        single.append('hostId', String(hostIdFromQs));
-        single.append('listingId', String(listingId));
-        await api.post(`/api/data/upload-image?hostId=${Number(hostIdFromQs)}&listingId=${Number(listingId)}`, single, { headers: { 'Content-Type': 'multipart/form-data' } });
-      } catch (err) {
-        // Fallback to multi-file endpoint with field 'images'
-        try {
-          const multi = new FormData();
-          multi.append('images', file);
-          multi.append('hostId', String(hostIdFromQs));
-          multi.append('listingId', String(listingId));
-          await api.post(`/api/data/upload-images?hostId=${Number(hostIdFromQs)}&listingId=${Number(listingId)}`, multi, { headers: { 'Content-Type': 'multipart/form-data' } });
-        } catch (err2) {
-          const detail = err2?.response?.data?.message || err?.response?.data?.message || err2?.message || err?.message || 'Upload failed';
-          setError(detail);
-          return;
-        }
-      }
     }
-    // After upload, refresh via host list (and city for full details)
+    // If empty slot (no imageId), add as new image then refresh
+    const addForm = new FormData();
+    addForm.append('images', file);
+    await api.post(`/api/data/upload-images?hostId=${hostIdFromQs}&listingId=${listingId}`, addForm);
+    // Refresh full data by city to get fresh image objects with ids
     const resMeta = await api.get(`/api/data/listings/HostListingImages?hostId=${hostIdFromQs}`);
     const list = resMeta?.data?.data || [];
     const foundMeta = list.find((l) => String(l.id || l.listing_id) === String(listingId));
-    const latestImages = Array.isArray(foundMeta?.images) ? foundMeta.images : [];
-    // Try to identify newly added filename(s)
-    const added = latestImages.find((img) => !images.includes(img));
-    if (added) {
-      const next = [...images];
-      if (index < next.length) next[index] = added; else next.push(added);
-      setImages(next);
-    } else {
-      setImages(latestImages);
-    }
     if (foundMeta?.city) {
       const resCity = await api.get(`/api/data/listing/city/${encodeURIComponent(foundMeta.city)}`);
       const cityListings = Array.isArray(resCity?.data) ? resCity.data : [];
       const full = cityListings.find((it) => String(it.id) === String(foundMeta.listing_id || foundMeta.id));
-      if (full) setData({ ...full });
-    }
-  };
-
-  const handleDeleteImage = async (filename) => {
-    if (!filename || !hostIdFromQs) return;
-    try {
-      await api.delete(`/api/data/listing-image?hostId=${Number(hostIdFromQs)}&listingId=${Number(listingId)}&filename=${encodeURIComponent(filename)}`);
-      // Refresh images
-      const resMeta = await api.get(`/api/data/listings/HostListingImages?hostId=${hostIdFromQs}`);
-      const list = resMeta?.data?.data || [];
-      const foundMeta = list.find((l) => String(l.id || l.listing_id) === String(listingId));
-      setImages(Array.isArray(foundMeta?.images) ? foundMeta.images : []);
-    } catch (err) {
-      const detail = err?.response?.data?.message || err?.message || 'Failed to delete image';
-      setError(detail);
+      if (full && Array.isArray(full.images)) setImages(full.images);
     }
   };
 
@@ -218,16 +174,7 @@ const ListingDetail = () => {
                 return (
                   <div key={i} className="relative group rounded-xl overflow-hidden bg-gray-100 h-40">
                     {img ? (
-                      <>
-                        <img src={getImageUrl(img)} className="w-full h-full object-cover"/>
-                        <button
-                          onClick={() => handleDeleteImage(img)}
-                          className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100"
-                          title="Delete photo"
-                        >
-                          ×
-                        </button>
-                      </>
+                      <img src={getImageUrl(img)} className="w-full h-full object-cover"/>
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-gray-500">No image</div>
                     )}
