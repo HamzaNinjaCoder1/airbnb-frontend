@@ -44,9 +44,10 @@ const ListingDetail = () => {
 
   const getImageUrl = (img) => {
     if (!img) return '';
-    if (typeof img === 'string') return img.startsWith('http') ? img : `${UPLOADS_BASE_URL}${img}`;
-    if (typeof img === 'object' && img.image_url) return String(img.image_url).startsWith('http') ? img.image_url : `${UPLOADS_BASE_URL}${img.image_url}`;
-    return '';
+    // Support objects with image_url or plain strings
+    const url = typeof img === 'object' ? (img.image_url || '') : img;
+    if (!url) return '';
+    return url.startsWith('http') ? url : `${UPLOADS_BASE_URL}${url}`;
   };
 
   useEffect(() => {
@@ -67,7 +68,7 @@ const ListingDetail = () => {
           const cityListings = Array.isArray(resCity?.data) ? resCity.data : [];
           const full = cityListings.find((it) => String(it.id) === String(foundMeta.listing_id || foundMeta.id));
           if (full) {
-            // keep objects to retain ids for replacement
+            // backend returns images as objects in relations
             const imgs = Array.isArray(full.images) ? full.images : [];
             setData({ ...full });
             setImages(imgs);
@@ -76,8 +77,11 @@ const ListingDetail = () => {
         }
         // 3) Fallback to meta only
         setData(foundMeta);
-        const metaImgs = Array.isArray(foundMeta.images) ? foundMeta.images.map((f) => ({ image_url: f })) : [];
-        setImages(metaImgs);
+        // Fallback: meta may only include string filenames; normalize to objects
+        const fallbackImgs = Array.isArray(foundMeta.images)
+          ? foundMeta.images.map((im) => (typeof im === 'string' ? { image_url: im } : im))
+          : [];
+        setImages(fallbackImgs);
       } catch (e) {
         setError(e?.message || 'Failed to load listing');
       } finally {
@@ -115,45 +119,79 @@ const ListingDetail = () => {
   };
 
   const handleReplaceImage = async (index, file) => {
+    if (!file) return;
+    const current = images?.[index];
+    const imageId = current?.id || current?.image_id;
+
+    // If we don't have an image id (fallback data), we cannot replace accurately.
+    // In that rare case, try adding as a new photo instead.
+    if (!imageId) {
+      await handleAddPhoto(file);
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const res = await api.put(
+        `/api/data/listings/${listingId}/images/${imageId}/replace`,
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+
+      const updatedListing = res?.data?.listing;
+      if (updatedListing && Array.isArray(updatedListing.images)) {
+        // Find the updated image by id and replace just that index
+        const updatedImage = updatedListing.images.find((im) => String(im.id) === String(imageId));
+        if (updatedImage) {
+          const next = [...images];
+          next[index] = updatedImage;
+          setImages(next);
+        } else {
+          // If not found, fall back to syncing all images
+          setImages(updatedListing.images);
+        }
+        setData((d) => ({ ...(d || {}), ...updatedListing }));
+      }
+    } catch (err) {
+      const status = err?.response?.status;
+      if (status === 404) setError('Image not found');
+      else if (status === 500) setError('Failed to replace image');
+      else setError(err?.message || 'Failed to replace image');
+    }
+  };
+
+  const handleAddPhoto = async (file) => {
     if (!file || !hostIdFromQs) return;
-    const current = images[index];
-    const imageId = current && typeof current === 'object' && current.id ? current.id : null;
-
-    if (imageId) {
-      // Replace existing image via PUT endpoint with auth
+    try {
       const form = new FormData();
-      form.append('image', file);
-      const token = localStorage.getItem('token');
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await api.put(`/api/data/listings/${listingId}/images/${imageId}/replace`, form, { headers });
-      const updated = res?.data?.images;
-      if (Array.isArray(updated)) {
-        setImages(updated);
-        return;
-      }
-    } else {
-      // Add new image using upload-images endpoint
-      const addForm = new FormData();
-      addForm.append('images', file);
-      await api.post(`/api/data/upload-images?hostId=${hostIdFromQs}&listingId=${listingId}`, addForm);
-    }
+      form.append('images', file);
+      await api.post(`/api/data/upload-images?hostId=${hostIdFromQs}&listingId=${listingId}`, form);
 
-    // Refresh: get meta then city full details
-    const resMeta = await api.get(`/api/data/listings/HostListingImages?hostId=${hostIdFromQs}`);
-    const list = resMeta?.data?.data || [];
-    const foundMeta = list.find((l) => String(l.id || l.listing_id) === String(listingId));
-    if (foundMeta?.city) {
-      const resCity = await api.get(`/api/data/listing/city/${encodeURIComponent(foundMeta.city)}`);
-      const cityListings = Array.isArray(resCity?.data) ? resCity.data : [];
-      const full = cityListings.find((it) => String(it.id) === String(foundMeta.listing_id || foundMeta.id));
-      if (full && Array.isArray(full.images)) {
-        setImages(full.images);
-        setData({ ...full });
-        return;
+      // Refresh details from city to get image objects with ids
+      const hostRes = await api.get(`/api/data/listings/HostListingImages?hostId=${hostIdFromQs}`);
+      const list = hostRes?.data?.data || [];
+      const foundMeta = list.find((l) => String(l.id || l.listing_id) === String(listingId));
+      if (foundMeta?.city) {
+        const resCity = await api.get(`/api/data/listing/city/${encodeURIComponent(foundMeta.city)}`);
+        const cityListings = Array.isArray(resCity?.data) ? resCity.data : [];
+        const full = cityListings.find((it) => String(it.id) === String(foundMeta.listing_id || foundMeta.id));
+        if (full) {
+          setData({ ...full });
+          setImages(Array.isArray(full.images) ? full.images : []);
+          return;
+        }
       }
+
+      // Fallback to meta images if city fetch fails
+      const latestImages = Array.isArray(foundMeta?.images)
+        ? foundMeta.images.map((im) => (typeof im === 'string' ? { image_url: im } : im))
+        : [];
+      setImages(latestImages);
+    } catch (err) {
+      setError(err?.message || 'Failed to upload image');
     }
-    const latest = Array.isArray(foundMeta?.images) ? foundMeta.images.map((f) => ({ image_url: f })) : [];
-    setImages(latest);
   };
 
   if (!isAuthenticated) return null;
