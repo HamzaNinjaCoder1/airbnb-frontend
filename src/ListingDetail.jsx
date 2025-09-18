@@ -135,7 +135,7 @@ const ListingDetail = () => {
       formData.append('image', file);
 
       const res = await api.put(
-        `/api/data/listings/${listingId}/images/${imageId}/replace`,
+        `/api/data/listings/${listingId}/images/${imageId}`,
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' } }
       );
