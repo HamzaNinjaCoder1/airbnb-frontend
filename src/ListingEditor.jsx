@@ -172,36 +172,6 @@ const ListingEditor = () => {
 
         {!loading && (
           <>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-8">
-              <div className="col-span-2 row-span-2 h-[220px] sm:h-[280px] lg:h-[360px] relative group">
-                <img src={images[0]} alt="Primary" className="w-full h-full object-cover rounded-xl" />
-                <label className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
-                    const files = Array.from(e.target.files || []);
-                    if (!files.length || !effectiveHostId) return;
-                    const form = new FormData();
-                    form.append('images', files[0]);
-                    try { await api.post(`/api/data/upload-images?hostId=${effectiveHostId}&listingId=${listingId}`, form); await refreshListing(); } catch (err) { console.error(err); }
-                  }} />
-                  <span className="px-3 py-1.5 bg-white/90 border border-gray-300 rounded-lg text-sm cursor-pointer">Change photo</span>
-                </label>
-              </div>
-              {images.slice(1).map((src, idx) => (
-                <div key={idx} className="h-[120px] sm:h-[140px] lg:h-[174px] relative group">
-                  <img src={src} alt="Gallery" className="w-full h-full object-cover rounded-xl" />
-                  <label className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
-                      const files = Array.from(e.target.files || []);
-                      if (!files.length || !effectiveHostId) return;
-                      const form = new FormData();
-                      form.append('images', files[0]);
-                      try { await api.post(`/api/data/upload-images?hostId=${effectiveHostId}&listingId=${listingId}`, form); await refreshListing(); } catch (err) { console.error(err); }
-                    }} />
-                    <span className="px-2 py-1 bg-white/90 border border-gray-300 rounded text-xs cursor-pointer">Change photo {idx+2}</span>
-                  </label>
-                </div>
-              ))}
-            </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 bg-white border border-gray-200 rounded-2xl p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -285,23 +255,36 @@ const ListingEditor = () => {
                 </div>
               </div>
 
-              <div className="bg-white border border-gray-200 rounded-2xl p-6 h-fit">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" className="text-gray-700"><path d="M21 5h-3.586l-1.707-1.707A.997.997 0 0 0 15 3H9a.997.997 0 0 0-.707.293L6.586 5H3c-1.103 0-2 .897-2 2v11c0 1.103.897 2 2 2h18c1.103 0 2-.897 2-2V7c0-1.103-.897-2-2-2zM12 19c-2.757 0-5-2.243-5-5s2.243-5 5-5 5 2.243 5 5-2.243 5-5 5z"/></svg>
-                  Photos
-                </h2>
-                <div className="space-y-3">
-                  <label className="w-full flex items-center justify-center px-4 py-2 bg-gray-900 text-white rounded-xl hover:bg-gray-800 cursor-pointer">
-                    <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
-                      const files = Array.from(e.target.files || []);
-                      if (!files.length || !effectiveHostId) return;
-                      const form = new FormData();
-                      form.append('images', files[0]);
-                      try { await api.post(`/api/data/upload-images?hostId=${effectiveHostId}&listingId=${listingId}`, form); await refreshListing(); } catch (err) { console.error(err); }
-                    }} />
-                    <span>Upload photo</span>
-                  </label>
-                  <div className="text-xs text-gray-500">Upload replaces or adds a photo. Changes appear above.</div>
+              <div className="lg:col-span-1">
+                <div className="sticky top-24 space-y-3">
+                  <div className="h-[220px] sm:h-[260px] lg:h-[320px] relative group rounded-xl overflow-hidden">
+                    <img src={images[0]} alt="Primary" className="w-full h-full object-cover" />
+                    <label className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                        const files = Array.from(e.target.files || []);
+                        if (!files.length || !effectiveHostId) return;
+                        const form = new FormData();
+                        form.append('images', files[0]);
+                        try { await api.post(`/api/data/upload-images?hostId=${effectiveHostId}&listingId=${listingId}`, form); await refreshListing(); } catch (err) { console.error(err); }
+                      }} />
+                      <span className="px-2 py-1 bg-white/90 border border-gray-300 rounded text-xs cursor-pointer">Change</span>
+                    </label>
+                  </div>
+                  {images.slice(1).map((src, idx) => (
+                    <div key={idx} className="h-[110px] sm:h-[120px] lg:h-[140px] relative group rounded-xl overflow-hidden">
+                      <img src={src} alt={`Gallery ${idx+2}`} className="w-full h-full object-cover" />
+                      <label className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                          const files = Array.from(e.target.files || []);
+                          if (!files.length || !effectiveHostId) return;
+                          const form = new FormData();
+                          form.append('images', files[0]);
+                          try { await api.post(`/api/data/upload-images?hostId=${effectiveHostId}&listingId=${listingId}`, form); await refreshListing(); } catch (err) { console.error(err); }
+                        }} />
+                        <span className="px-2 py-1 bg-white/90 border border-gray-300 rounded text-xs cursor-pointer">Change</span>
+                      </label>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
