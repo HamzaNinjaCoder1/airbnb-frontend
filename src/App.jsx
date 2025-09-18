@@ -34,6 +34,7 @@ import PricingWeekend from './PricingWeekend'
 import Discounts from './Discounts'
 import FinalDetails from './FinalDetails'
 import Listings from './Listings'
+import ListingEditor from './ListingEditor'
 import AuthPage from './AuthPage'
 import Messages from './Messages'
 import WishlistPage from './WishlistPage'
@@ -85,6 +86,7 @@ function App() {
           <Route path="/discounts" element={<Discounts />} />
           <Route path="/final-details" element={<FinalDetails />} />
           <Route path="/listings/:hostId" element={<Listings />} />
+          <Route path="/listings/:hostId/:listingId" element={<ListingEditor />} />
           <Route path="/listings" element={<Listings />} />
           <Route path="/explore/:city" element={
             <HeaderWithContent>

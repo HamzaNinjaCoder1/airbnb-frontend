@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import HostWrapper from './HostWrapper';
 
-function AmenitiesSelect({ onSaveAndExit, onNext, onBack, isSaving, hostId, onAmenitiesDataChange, progress, setProgress, listingId }) {
+function AmenitiesSelect({ onSaveAndExit, onNext, onBack, isSaving, hostId, onAmenitiesDataChange, progress, setProgress }) {
     const { isAuthenticated } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
@@ -83,40 +83,11 @@ function AmenitiesSelect({ onSaveAndExit, onNext, onBack, isSaving, hostId, onAm
             return s;
         });
     };
-
-    // Hydrate selections from localStorage for steps that aren't in DB
-    useEffect(() => {
-        try {
-            const id = listingId || 'new';
-            const key = `listing:${hostId || 'anon'}:${id}`;
-            const localRaw = localStorage.getItem(key);
-            const local = localRaw ? JSON.parse(localRaw) : {};
-            const saved = Array.isArray(local.amenities) ? local.amenities : [];
-            if (saved.length > 0) {
-                setSelected(new Set(saved));
-            }
-        } catch (_) {}
-    }, [hostId, listingId]);
-
-    // Persist to localStorage whenever selection changes
-    useEffect(() => {
-        try {
-            const id = listingId || 'new';
-            const key = `listing:${hostId || 'anon'}:${id}`;
-            const prev = localStorage.getItem(key);
-            const obj = prev ? JSON.parse(prev) : {};
-            localStorage.setItem(key, JSON.stringify({ ...obj, amenities: Array.from(selected) }));
-        } catch (_) {}
-    }, [selected, hostId, listingId]);
-
-    // Function to notify parent component of amenities data changes
     const notifyAmenitiesDataChange = useCallback(() => {
         if (onAmenitiesDataChange) {
             onAmenitiesDataChange(Array.from(selected));
         }
     }, [selected, onAmenitiesDataChange]);
-
-    // Notify parent when selected amenities change
     useEffect(() => {
         notifyAmenitiesDataChange();
     }, [notifyAmenitiesDataChange]);

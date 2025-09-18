@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from './api';
 
@@ -20,51 +20,6 @@ const HostWrapper = ({
     const editMode = searchParams.get('editMode') === 'true';
     const returnUrl = searchParams.get('returnUrl') || `/listings/${hostId}`;
     const [isSaving, setIsSaving] = useState(false);
-    const [existingData, setExistingData] = useState(null);
-
-    // Build a stable localStorage key per listing
-    const storageKey = useMemo(() => {
-        const id = listingId || 'new';
-        return `listing:${hostId || 'anon'}:${id}`;
-    }, [hostId, listingId]);
-
-    // Load existing data from backend (if ids present) and merge with local storage snapshot
-    useEffect(() => {
-        let cancelled = false;
-
-        const load = async () => {
-            try {
-                let server = null;
-                if (hostId && listingId) {
-                    try {
-                        const res = await api.get(`/api/data/listing/${listingId}`);
-                        server = res?.data || null;
-                    } catch (_) {
-                        // ignore fetch errors; we'll still show local data
-                    }
-                }
-                const localRaw = localStorage.getItem(storageKey);
-                const local = localRaw ? JSON.parse(localRaw) : {};
-                const merged = { ...(server || {}), ...(local || {}) };
-                if (!cancelled) setExistingData(merged);
-            } catch (_) {
-                if (!cancelled) setExistingData(null);
-            }
-        };
-
-        load();
-        return () => { cancelled = true; };
-    }, [hostId, listingId, storageKey]);
-
-    // Helper to persist partial step data locally for steps not saved to DB
-    const persistLocal = (partial) => {
-        try {
-            const prev = localStorage.getItem(storageKey);
-            const obj = prev ? JSON.parse(prev) : {};
-            const next = { ...obj, ...(partial || {}) };
-            localStorage.setItem(storageKey, JSON.stringify(next));
-        } catch (_) {}
-    };
 
 
     const handleSaveAndExit = async () => {
@@ -93,8 +48,6 @@ const HostWrapper = ({
             );
             
             console.log('Listing saved successfully:', response.data);
-            // Mirror to local storage as well
-            persistLocal(requestData);
             if (onSaveAndExit) {
                 onSaveAndExit();
             } else {
@@ -138,8 +91,6 @@ const HostWrapper = ({
             );
             
             console.log('Listing saved successfully:', response.data);
-            // Mirror to local storage as well
-            persistLocal(requestData);
             
             if (editMode) {
                 // In edit mode, return to listings page
@@ -187,9 +138,7 @@ const HostWrapper = ({
                 onBack: handleBack,
                 isSaving,
                 hostId,
-                listingId,
-                existingData,
-                persistLocal
+                listingId
             });
         }
         return child;

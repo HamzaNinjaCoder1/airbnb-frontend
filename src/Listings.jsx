@@ -45,7 +45,7 @@ const formatLocation = (city, stateOrProvince, country) => {
   return [cityText, region || countryText].filter(Boolean).join(', ');
 };
 
-const ListingCard = ({ image, title, city, state, province, country, status, onClick, onDelete, onEdit }) => {
+const ListingCard = ({ image, title, city, state, province, country, status, onClick, onDelete }) => {
   // Helper function to get the first image URL
   const getImageUrl = (imageData) => {
     if (!imageData) return null;
@@ -97,31 +97,8 @@ const ListingCard = ({ image, title, city, state, province, country, status, onC
           <span className={`w-2 h-2 rounded-full inline-block ${STATUS_META[status]?.dot || STATUS_META.in_progress.dot}`} />
           {STATUS_META[status]?.label || STATUS_META.in_progress.label}
         </span>
-        {/* Action buttons */}
+        {/* Action buttons (delete only) */}
         <div className="absolute right-3 top-3 flex gap-2">
-          {/* Edit icon */}
-          <button
-            onClick={onEdit}
-            className="w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-sm transition-all duration-200 hover:shadow-md"
-            title="Edit listing"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              width="16"
-              height="16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-blue-500 hover:text-blue-600"
-            >
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-            </svg>
-          </button>
-          {/* Delete icon */}
           <button
             onClick={onDelete}
             className="w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-sm transition-all duration-200 hover:shadow-md"
@@ -164,8 +141,7 @@ const Listings = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [listingToDelete, setListingToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [listingToEdit, setListingToEdit] = useState(null);
+  
 
   const stepToPath = (step) => {
     const s = String(step || '').toLowerCase().replace(/\s+/g, '').replace(/_/g, '').replace(/-/g, '');
@@ -198,19 +174,10 @@ const Listings = () => {
   };
 
   const navigateToListing = (l) => {
-    const uiStatus = deriveStatus(l);
-    if (uiStatus === 'published') {
-      navigate('/');
-      return;
-    }
     const hostId = l.host_id || l.hostId || hostIdFromParams || searchParams.get('hostId');
     const listingId = l.id || l.listing_id || l.listingId;
-    const base = stepToPath(l.current_step || l.step || l.stage);
-    const qs = new URLSearchParams();
-    if (hostId) qs.set('hostId', hostId);
-    if (listingId) qs.set('listingId', listingId);
-    const urlWithIds = qs.toString() ? `${base}?${qs.toString()}` : base;
-    navigate(urlWithIds);
+    if (!listingId) return;
+    navigate(`/listings/${hostId || 'me'}/${listingId}`, { state: { listing: l } });
   };
 
   // Delete functionality
@@ -249,51 +216,7 @@ const Listings = () => {
     setListingToDelete(null);
   };
 
-  // Edit functionality
-  const handleEditClick = (e, listing) => {
-    e.stopPropagation(); // Prevent navigation when clicking edit
-    setListingToEdit(listing);
-    setShowEditDialog(true);
-  };
-
-  const handleEditCancel = () => {
-    setShowEditDialog(false);
-    setListingToEdit(null);
-  };
-
-  const handleEditOption = (option) => {
-    if (!listingToEdit) return;
-    
-    const hostId = listingToEdit.host_id || hostIdFromParams || searchParams.get('hostId') || 1;
-    const listingId = listingToEdit.id || listingToEdit.listing_id;
-    
-    // Map edit options to their corresponding pages
-    const editRoutes = {
-      location: '/aboutplace/location',
-      title: '/aboutplace/title',
-      price: '/pricing-weekday',
-      images: '/aboutplace/photos',
-      description: '/aboutplace/description',
-      amenities: '/aboutplace/amenities',
-      highlights: '/aboutplace/highlights',
-      basics: '/aboutplace/basics',
-      standout: '/aboutplace/standout'
-    };
-    
-    const route = editRoutes[option];
-    if (route) {
-      const qs = new URLSearchParams();
-      if (hostId) qs.set('hostId', hostId);
-      if (listingId) qs.set('listingId', listingId);
-      qs.set('editMode', 'true'); // Add edit mode flag
-      qs.set('returnUrl', `/listings/${hostId}`); // Add return URL
-      const urlWithIds = qs.toString() ? `${route}?${qs.toString()}` : route;
-      navigate(urlWithIds);
-    }
-    
-    setShowEditDialog(false);
-    setListingToEdit(null);
-  };
+  // Removed edit modal and actions per requirement
 
   useEffect(() => {
     const t = setTimeout(() => setIsMounted(true), 0);
@@ -377,7 +300,6 @@ const Listings = () => {
                 status={uiStatus}
                 onClick={() => navigateToListing(l)}
                 onDelete={(e) => handleDeleteClick(e, l)}
-                onEdit={(e) => handleEditClick(e, l)}
               />
             );})}
           </div>
@@ -434,27 +356,6 @@ const Listings = () => {
                   </div>
                   <div className="col-span-1 flex justify-center gap-2">
                     <button
-                      onClick={(e) => handleEditClick(e, l)}
-                      className="w-8 h-8 bg-blue-50 hover:bg-blue-100 rounded-full flex items-center justify-center transition-all duration-200 hover:shadow-md"
-                      title="Edit listing"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        width="16"
-                        height="16"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="text-blue-500 hover:text-blue-600"
-                      >
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                      </svg>
-                    </button>
-                    <button
                       onClick={(e) => handleDeleteClick(e, l)}
                       className="w-8 h-8 bg-red-50 hover:bg-red-100 rounded-full flex items-center justify-center transition-all duration-200 hover:shadow-md"
                       title="Delete listing"
@@ -482,140 +383,7 @@ const Listings = () => {
         )}
       </div>
 
-        {/* Edit Dialog */}
-        {showEditDialog && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-2xl p-6 max-w-2xl w-full mx-4 shadow-xl">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">Edit Listing</h2>
-                <button
-                  onClick={handleEditCancel}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              
-              {listingToEdit && (
-                <div className="mb-6">
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <p className="font-medium text-gray-900">{enhanceTitle(listingToEdit.title)}</p>
-                    <p className="text-sm text-gray-600">{formatLocation(listingToEdit.city, listingToEdit.state || listingToEdit.province, listingToEdit.country)}</p>
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-3">
-                <p className="text-gray-700 mb-4">What would you like to edit?</p>
-                
-                {/* Edit Options */}
-                <div className="grid grid-cols-3 gap-3">
-                  <button
-                    onClick={() => handleEditOption('location')}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors text-left"
-                  >
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900">Location</div>
-                      <div className="text-sm text-gray-500">Change address</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => handleEditOption('title')}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors text-left"
-                  >
-                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m-9 0h10m-9 0a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V6a2 2 0 00-2-2M9 4h6" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900">Title</div>
-                      <div className="text-sm text-gray-500">Change listing name</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => handleEditOption('price')}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors text-left"
-                  >
-                    <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900">Price</div>
-                      <div className="text-sm text-gray-500">Update pricing</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => handleEditOption('images')}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors text-left"
-                  >
-                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900">Photos</div>
-                      <div className="text-sm text-gray-500">Update images</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => handleEditOption('description')}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors text-left"
-                  >
-                    <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900">Description</div>
-                      <div className="text-sm text-gray-500">Update details</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => handleEditOption('amenities')}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors text-left"
-                  >
-                    <div className="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-5 h-5 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900">Amenities</div>
-                      <div className="text-sm text-gray-500">Update features</div>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex gap-3 justify-end mt-6">
-                <button
-                  onClick={handleEditCancel}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Edit Dialog removed */}
 
         <HostDialog
           showHostDialog={showHostDialog}

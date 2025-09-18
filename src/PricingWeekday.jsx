@@ -15,7 +15,6 @@ const PricingWeekday = () => {
     const [progress, setProgress] = useState(82);
     const [isMounted, setIsMounted] = useState(false);
     const [price, setPrice] = useState(25);
-    const [didHydrate, setDidHydrate] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [showGuestBreakdown, setShowGuestBreakdown] = useState(false);
     const [showHostBreakdown, setShowHostBreakdown] = useState(false);
@@ -27,28 +26,6 @@ const PricingWeekday = () => {
         const t = setTimeout(() => setProgress(p => Math.max(p, 88)), 60);
         return () => { clearTimeout(m); clearTimeout(t); };
     }, []);
-
-    // Prefill from existing price if available (server or local)
-    useEffect(() => {
-        if (didHydrate) return;
-        try {
-            const id = listingId || 'new';
-            const key = `listing:${hostId || 'anon'}:${id}`;
-            let initial = null;
-            // Try to get from location.state.existingData if provided
-            const injected = location?.state?.existingData;
-            initial = (injected && (injected.price_per_night || injected.weekday_price || injected.base_price)) ?? null;
-            if (initial == null) {
-                const localRaw = localStorage.getItem(key);
-                const local = localRaw ? JSON.parse(localRaw) : {};
-                initial = local.price_per_night ?? local.weekday_price ?? local.base_price;
-            }
-            if (initial != null && !Number.isNaN(Number(initial))) {
-                setPrice(parseInt(initial, 10));
-            }
-        } catch (_) {}
-        setDidHydrate(true);
-    }, [didHydrate, hostId, listingId, location]);
 
     const guestServiceFee = 4; 
     const hostServiceFee = -1; 
