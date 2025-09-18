@@ -114,28 +114,39 @@ const ListingDetail = () => {
 
   const handleReplaceImage = async (index, file) => {
     if (!file || !hostIdFromQs) return;
-    // Upload using backend handlers that accept either 'images' or 'image'
-    const form = new FormData();
-    form.append('images', file);
-    form.append('image', file);
-    let uploaded = false;
-    try {
-      await api.post(`/api/data/upload-images?hostId=${Number(hostIdFromQs)}&listingId=${Number(listingId)}`, form);
-      uploaded = true;
-    } catch (err) {
-      // Fallback to single-file endpoint if fields parser rejected the upload
+    const oldFilename = images[index];
+    if (oldFilename) {
       try {
-        const single = new FormData();
-        single.append('image', file);
-        await api.post(`/api/data/upload-image?hostId=${Number(hostIdFromQs)}&listingId=${Number(listingId)}`, single);
-        uploaded = true;
-      } catch (err2) {
-        const detail = err2?.response?.data?.message || err?.response?.data?.message || err2?.message || err?.message || 'Upload failed';
+        const form = new FormData();
+        form.append('image', file);
+        await api.post(
+          `/api/data/listing-image/replace?hostId=${Number(hostIdFromQs)}&listingId=${Number(listingId)}&oldFilename=${encodeURIComponent(oldFilename)}`,
+          form
+        );
+      } catch (err) {
+        const detail = err?.response?.data?.message || err?.message || 'Failed to replace image';
         setError(detail);
         return;
       }
+    } else {
+      // Add image
+      try {
+        const form = new FormData();
+        form.append('images', file);
+        await api.post(`/api/data/upload-images?hostId=${Number(hostIdFromQs)}&listingId=${Number(listingId)}`, form);
+      } catch (err) {
+        // Fallback to single-file endpoint
+        try {
+          const single = new FormData();
+          single.append('image', file);
+          await api.post(`/api/data/upload-image?hostId=${Number(hostIdFromQs)}&listingId=${Number(listingId)}`, single);
+        } catch (err2) {
+          const detail = err2?.response?.data?.message || err?.response?.data?.message || err2?.message || err?.message || 'Upload failed';
+          setError(detail);
+          return;
+        }
+      }
     }
-    if (!uploaded) return;
     // After upload, refresh via host list (and city for full details)
     const resMeta = await api.get(`/api/data/listings/HostListingImages?hostId=${hostIdFromQs}`);
     const list = resMeta?.data?.data || [];
@@ -155,6 +166,21 @@ const ListingDetail = () => {
       const cityListings = Array.isArray(resCity?.data) ? resCity.data : [];
       const full = cityListings.find((it) => String(it.id) === String(foundMeta.listing_id || foundMeta.id));
       if (full) setData({ ...full });
+    }
+  };
+
+  const handleDeleteImage = async (filename) => {
+    if (!filename || !hostIdFromQs) return;
+    try {
+      await api.delete(`/api/data/listing-image?hostId=${Number(hostIdFromQs)}&listingId=${Number(listingId)}&filename=${encodeURIComponent(filename)}`);
+      // Refresh images
+      const resMeta = await api.get(`/api/data/listings/HostListingImages?hostId=${hostIdFromQs}`);
+      const list = resMeta?.data?.data || [];
+      const foundMeta = list.find((l) => String(l.id || l.listing_id) === String(listingId));
+      setImages(Array.isArray(foundMeta?.images) ? foundMeta.images : []);
+    } catch (err) {
+      const detail = err?.response?.data?.message || err?.message || 'Failed to delete image';
+      setError(detail);
     }
   };
 
@@ -188,7 +214,16 @@ const ListingDetail = () => {
                 return (
                   <div key={i} className="relative group rounded-xl overflow-hidden bg-gray-100 h-40">
                     {img ? (
-                      <img src={getImageUrl(img)} className="w-full h-full object-cover"/>
+                      <>
+                        <img src={getImageUrl(img)} className="w-full h-full object-cover"/>
+                        <button
+                          onClick={() => handleDeleteImage(img)}
+                          className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100"
+                          title="Delete photo"
+                        >
+                          ×
+                        </button>
+                      </>
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-gray-500">No image</div>
                     )}
