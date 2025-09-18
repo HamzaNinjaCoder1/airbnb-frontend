@@ -114,10 +114,28 @@ const ListingDetail = () => {
 
   const handleReplaceImage = async (index, file) => {
     if (!file || !hostIdFromQs) return;
-    // Upload using same endpoint as Photosupload.jsx
+    // Upload using backend handlers that accept either 'images' or 'image'
     const form = new FormData();
     form.append('images', file);
-    await api.post(`/api/data/upload-images?hostId=${hostIdFromQs}&listingId=${listingId}`, form);
+    form.append('image', file);
+    let uploaded = false;
+    try {
+      await api.post(`/api/data/upload-images?hostId=${Number(hostIdFromQs)}&listingId=${Number(listingId)}`, form);
+      uploaded = true;
+    } catch (err) {
+      // Fallback to single-file endpoint if fields parser rejected the upload
+      try {
+        const single = new FormData();
+        single.append('image', file);
+        await api.post(`/api/data/upload-image?hostId=${Number(hostIdFromQs)}&listingId=${Number(listingId)}`, single);
+        uploaded = true;
+      } catch (err2) {
+        const detail = err2?.response?.data?.message || err?.response?.data?.message || err2?.message || err?.message || 'Upload failed';
+        setError(detail);
+        return;
+      }
+    }
+    if (!uploaded) return;
     // After upload, refresh via host list (and city for full details)
     const resMeta = await api.get(`/api/data/listings/HostListingImages?hostId=${hostIdFromQs}`);
     const list = resMeta?.data?.data || [];
