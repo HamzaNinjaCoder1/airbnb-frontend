@@ -37,6 +37,12 @@ const ListingEditor = () => {
   const [provinceInput, setProvinceInput] = useState('');
   const [countryInput, setCountryInput] = useState('');
   const [descriptionInput, setDescriptionInput] = useState('');
+  const [stayTypeInput, setStayTypeInput] = useState('');
+  const [maxGuestsInput, setMaxGuestsInput] = useState('');
+  const [bedroomsInput, setBedroomsInput] = useState('');
+  const [bedsInput, setBedsInput] = useState('');
+  const [bathsInput, setBathsInput] = useState('');
+  const [mapUrlInput, setMapUrlInput] = useState('');
   const [savingKey, setSavingKey] = useState('');
 
   useEffect(() => {
@@ -76,6 +82,12 @@ const ListingEditor = () => {
     setProvinceInput(String(listing.province || ''));
     setCountryInput(String(listing.country || ''));
     setDescriptionInput(String(listing.description || ''));
+    setStayTypeInput(String(listing.stay_type || listing.type || 'Home'));
+    setMaxGuestsInput(String(listing.max_guests ?? listing.guests ?? 1));
+    setBedroomsInput(String(listing.bedrooms ?? 1));
+    setBedsInput(String(listing.beds ?? 1));
+    setBathsInput(String(listing.baths ?? 1));
+    setMapUrlInput(String(listing.map_url || listing.map || ''));
   }, [listing]);
 
   const refreshListing = async () => {
@@ -185,19 +197,22 @@ const ListingEditor = () => {
                       form.append('images', files[0]);
                       try { await api.post(`/api/data/upload-images?hostId=${effectiveHostId}&listingId=${listingId}`, form); await refreshListing(); } catch (err) { console.error(err); }
                     }} />
-                    <span className="px-2 py-1 bg-white/90 border border-gray-300 rounded text-xs cursor-pointer">Change</span>
+                    <span className="px-2 py-1 bg-white/90 border border-gray-300 rounded text-xs cursor-pointer">Change photo {idx+2}</span>
                   </label>
                 </div>
               ))}
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 bg-white border border-gray-200 rounded-2xl p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Basic info</h2>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" className="text-gray-700"><path d="M12 12c2.761 0 5-2.239 5-5S14.761 2 12 2 7 4.239 7 7s2.239 5 5 5zm0 2c-3.866 0-7 2.239-7 5v1h14v-1c0-2.761-3.134-5-7-5z"/></svg>
+                  Basic info
+                </h2>
                 <div className="py-3 border-b border-gray-100">
                   <label className="block text-sm text-gray-500 mb-1">Title</label>
                   <div className="flex items-center gap-3">
                     <input value={titleInput} onChange={(e) => setTitleInput(e.target.value)} className="flex-1 border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-300" />
-                    <button onClick={() => saveFields({ title: titleInput }, 'title')} className={`px-4 py-2 rounded-lg border ${savingKey==='title' ? 'opacity-60' : 'hover:bg-gray-50'}`}>{savingKey==='title' ? 'Saving...' : 'Save'}</button>
+                    <button disabled={!titleInput.trim()} title={!titleInput.trim() ? 'Title cannot be empty' : ''} onClick={() => saveFields({ title: titleInput }, 'title')} className={`px-4 py-2 rounded-lg border ${savingKey==='title' ? 'opacity-60' : 'hover:bg-gray-50'} ${!titleInput.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}>{savingKey==='title' ? 'Saving...' : 'Save'}</button>
                   </div>
                 </div>
                 <div className="py-3 border-b border-gray-100">
@@ -207,7 +222,14 @@ const ListingEditor = () => {
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
                       <input value={priceInput} onChange={(e)=>setPriceInput(e.target.value.replace(/[^0-9]/g,''))} className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2 outline-none focus:ring-2 focus:ring-gray-300" />
                     </div>
-                    <button onClick={() => saveFields({ price_per_night: Number(priceInput||0) }, 'price')} className={`px-4 py-2 rounded-lg border ${savingKey==='price' ? 'opacity-60' : 'hover:bg-gray-50'}`}>{savingKey==='price' ? 'Saving...' : 'Save'}</button>
+                    <button disabled={!priceInput || Number(priceInput) <= 0} title={!priceInput || Number(priceInput) <= 0 ? 'Enter a valid price' : ''} onClick={() => saveFields({ price_per_night: Number(priceInput||0) }, 'price')} className={`px-4 py-2 rounded-lg border ${savingKey==='price' ? 'opacity-60' : 'hover:bg-gray-50'} ${(!priceInput || Number(priceInput)<=0) ? 'opacity-50 cursor-not-allowed' : ''}`}>{savingKey==='price' ? 'Saving...' : 'Save'}</button>
+                  </div>
+                </div>
+                <div className="py-3 border-b border-gray-100">
+                  <label className="block text-sm text-gray-500 mb-1">Stay type</label>
+                  <div className="flex items-center gap-3">
+                    <input value={stayTypeInput} onChange={(e)=>setStayTypeInput(e.target.value)} className="flex-1 border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-300" />
+                    <button disabled={!stayTypeInput.trim()} title={!stayTypeInput.trim() ? 'Stay type is required' : ''} onClick={() => saveFields({ stay_type: stayTypeInput }, 'stay_type')} className={`px-4 py-2 rounded-lg border ${savingKey==='stay_type' ? 'opacity-60' : 'hover:bg-gray-50'} ${!stayTypeInput.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}>{savingKey==='stay_type' ? 'Saving...' : 'Save'}</button>
                   </div>
                 </div>
                 <div className="py-3 border-b border-gray-100">
@@ -220,20 +242,54 @@ const ListingEditor = () => {
                     <input value={countryInput} onChange={(e)=>setCountryInput(e.target.value)} placeholder="Country" className="border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-300" />
                   </div>
                   <div className="mt-3">
-                    <button onClick={() => saveFields({ address: addressInput, city: cityInput, state: stateInput, province: provinceInput, country: countryInput }, 'location')} className={`px-4 py-2 rounded-lg border ${savingKey==='location' ? 'opacity-60' : 'hover:bg-gray-50'}`}>{savingKey==='location' ? 'Saving...' : 'Save location'}</button>
+                    <button disabled={!cityInput.trim() || !countryInput.trim()} title={!cityInput.trim() || !countryInput.trim() ? 'City and Country are required' : ''} onClick={() => saveFields({ address: addressInput, city: cityInput, state: stateInput, province: provinceInput, country: countryInput }, 'location')} className={`px-4 py-2 rounded-lg border ${savingKey==='location' ? 'opacity-60' : 'hover:bg-gray-50'} ${(!cityInput.trim() || !countryInput.trim()) ? 'opacity-50 cursor-not-allowed' : ''}`}>{savingKey==='location' ? 'Saving...' : 'Save location'}</button>
+                  </div>
+                </div>
+                <div className="py-3 border-b border-gray-100">
+                  <label className="block text-sm text-gray-500 mb-1">Map URL</label>
+                  <div className="flex items-center gap-3">
+                    <input value={mapUrlInput} onChange={(e)=>setMapUrlInput(e.target.value)} placeholder="https://maps.google.com/..." className="flex-1 border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-300" />
+                    <button disabled={!mapUrlInput.trim()} title={!mapUrlInput.trim() ? 'Map URL is required' : ''} onClick={() => saveFields({ map_url: mapUrlInput }, 'map_url')} className={`px-4 py-2 rounded-lg border ${savingKey==='map_url' ? 'opacity-60' : 'hover:bg-gray-50'} ${!mapUrlInput.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}>{savingKey==='map_url' ? 'Saving...' : 'Save'}</button>
                   </div>
                 </div>
                 <div className="py-3 border-b border-gray-100">
                   <label className="block text-sm text-gray-500 mb-1">Description</label>
                   <textarea value={descriptionInput} onChange={(e)=>setDescriptionInput(e.target.value)} rows={4} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-300"></textarea>
                   <div className="mt-3">
-                    <button onClick={() => saveFields({ description: descriptionInput }, 'description')} className={`px-4 py-2 rounded-lg border ${savingKey==='description' ? 'opacity-60' : 'hover:bg-gray-50'}`}>{savingKey==='description' ? 'Saving...' : 'Save description'}</button>
+                    <button disabled={!descriptionInput.trim()} title={!descriptionInput.trim() ? 'Description cannot be empty' : ''} onClick={() => saveFields({ description: descriptionInput }, 'description')} className={`px-4 py-2 rounded-lg border ${savingKey==='description' ? 'opacity-60' : 'hover:bg-gray-50'} ${!descriptionInput.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}>{savingKey==='description' ? 'Saving...' : 'Save description'}</button>
+                  </div>
+                </div>
+                <div className="py-3">
+                  <label className="block text-sm text-gray-500 mb-2">Capacity and rooms</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div>
+                      <div className="text-xs text-gray-500 mb-1">Max guests</div>
+                      <input value={maxGuestsInput} onChange={(e)=>setMaxGuestsInput(e.target.value.replace(/[^0-9]/g,''))} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-300" />
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500 mb-1">Bedrooms</div>
+                      <input value={bedroomsInput} onChange={(e)=>setBedroomsInput(e.target.value.replace(/[^0-9]/g,''))} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-300" />
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500 mb-1">Beds</div>
+                      <input value={bedsInput} onChange={(e)=>setBedsInput(e.target.value.replace(/[^0-9]/g,''))} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-300" />
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500 mb-1">Baths</div>
+                      <input value={bathsInput} onChange={(e)=>setBathsInput(e.target.value.replace(/[^0-9]/g,''))} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-300" />
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <button disabled={![maxGuestsInput, bedroomsInput, bedsInput, bathsInput].every(v => String(v).trim() && Number(v) >= 0)} title={!![maxGuestsInput, bedroomsInput, bedsInput, bathsInput].every(v => String(v).trim() && Number(v) >= 0) ? 'Enter valid numbers' : ''} onClick={() => saveFields({ max_guests: Number(maxGuestsInput||0), bedrooms: Number(bedroomsInput||0), beds: Number(bedsInput||0), baths: Number(bathsInput||0) }, 'capacity')} className={`px-4 py-2 rounded-lg border ${savingKey==='capacity' ? 'opacity-60' : 'hover:bg-gray-50'} ${![maxGuestsInput, bedroomsInput, bedsInput, bathsInput].every(v => String(v).trim() && Number(v) >= 0) ? 'opacity-50 cursor-not-allowed' : ''}`}>{savingKey==='capacity' ? 'Saving...' : 'Save capacity'}</button>
                   </div>
                 </div>
               </div>
 
               <div className="bg-white border border-gray-200 rounded-2xl p-6 h-fit">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Photos</h2>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" className="text-gray-700"><path d="M21 5h-3.586l-1.707-1.707A.997.997 0 0 0 15 3H9a.997.997 0 0 0-.707.293L6.586 5H3c-1.103 0-2 .897-2 2v11c0 1.103.897 2 2 2h18c1.103 0 2-.897 2-2V7c0-1.103-.897-2-2-2zM12 19c-2.757 0-5-2.243-5-5s2.243-5 5-5 5 2.243 5 5-2.243 5-5 5z"/></svg>
+                  Photos
+                </h2>
                 <div className="space-y-3">
                   <label className="w-full flex items-center justify-center px-4 py-2 bg-gray-900 text-white rounded-xl hover:bg-gray-800 cursor-pointer">
                     <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
