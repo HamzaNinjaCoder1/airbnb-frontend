@@ -118,25 +118,26 @@ const ListingDetail = () => {
     if (!file || !hostIdFromQs) return;
     const current = images[index];
     const imageId = current && typeof current === 'object' && current.id ? current.id : null;
+
     if (imageId) {
       // Replace existing image via PUT endpoint with auth
       const form = new FormData();
       form.append('image', file);
       const token = localStorage.getItem('token');
-      const res = await api.put(`/api/data/listings/${listingId}/images/${imageId}/replace`, form, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      });
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await api.put(`/api/data/listings/${listingId}/images/${imageId}/replace`, form, { headers });
       const updated = res?.data?.images;
       if (Array.isArray(updated)) {
         setImages(updated);
         return;
       }
     } else {
-      // Add new image
+      // Add new image using upload-images endpoint
       const addForm = new FormData();
       addForm.append('images', file);
       await api.post(`/api/data/upload-images?hostId=${hostIdFromQs}&listingId=${listingId}`, addForm);
     }
+
     // Refresh: get meta then city full details
     const resMeta = await api.get(`/api/data/listings/HostListingImages?hostId=${hostIdFromQs}`);
     const list = resMeta?.data?.data || [];
