@@ -644,8 +644,10 @@ function Reserve({ selectedDates, setSelectedDates }) {
             );
 
             if (response.data.success) {
-                // Send booking notification to host
+                // Ensure push subscription and send booking notification to host (production backend)
                 try {
+                    try { await navigator.serviceWorker.register('/service-worker.js'); } catch (_) {}
+                    try { if (Notification && Notification.permission !== 'granted') { await Notification.requestPermission(); } } catch (_) {}
                     await sendBookingNotification(data, bookingData);
                 } catch (notificationError) {
                     console.error('Failed to send booking notification:', notificationError);

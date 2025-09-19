@@ -1,7 +1,8 @@
 import api from "./api";
+import { SOCKET_URL, BACKEND_URL } from './config';
+import { io } from 'socket.io-client';
 
-const VAPID_PUBLIC_KEY =
-  "BP0OJzfIv3gutn2bu2VbP3Y062ZYRhtLNiYxxDe_OM1aueh7bJKcx5S72UzsRs40kFsukwOxfV13oTUJo-3vOFU";
+const VAPID_PUBLIC_KEY = null; // fetch from backend dynamically
 
 function isProductionOrigin() {
   try {
@@ -20,10 +21,7 @@ export async function subscribeUser() {
     console.error("Service workers not supported");
     return { success: false, error: "Service workers not supported" };
   }
-  if (!isProductionOrigin()) {
-    console.log("Skipping push subscription on non-production origin");
-    return { success: false, error: "Non-production origin" };
-  }
+  // Allow registration on any origin but only subscribe if production
 
   try {
     const permission = await Notification.requestPermission();
@@ -32,7 +30,9 @@ export async function subscribeUser() {
       return { success: false, error: "Notification permission denied" };
     }
 
-    const reg = await navigator.serviceWorker.ready;
+    // Ensure service worker is registered (path served from public/)
+    const reg = await navigator.serviceWorker.register('/service-worker.js');
+    await navigator.serviceWorker.ready;
     
     // Check if already subscribed
     const existingSubscription = await reg.pushManager.getSubscription();
@@ -41,9 +41,14 @@ export async function subscribeUser() {
       return { success: true, subscription: existingSubscription };
     }
 
+    // Fetch VAPID public key from backend
+    const vapidResp = await api.get('/api/data/vapid-public-key', { withCredentials: true });
+    const key = vapidResp?.data?.key;
+    if (!key) throw new Error('No VAPID key from backend');
+
     const subscription = await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      applicationServerKey: urlBase64ToUint8Array(key),
     });
 
     // Send subscription to your production backend
@@ -72,6 +77,36 @@ export async function subscribeUser() {
     });
     return { success: false, error: err.message };
   }
+}
+
+export async function initPushAndSocket(authToken, { joinConversationIds = [] } = {}) {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
+
+  // 1) Register service worker (already ensured in subscribeUser, but safe to call)
+  const reg = await navigator.serviceWorker.register('/service-worker.js');
+
+  // 2) Get VAPID public key
+  const { data } = await api.get('/api/data/vapid-public-key', { withCredentials: true });
+  const key = data?.key;
+  if (!key) throw new Error('No VAPID key');
+
+  // 3) Subscribe
+  const sub = await reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(key),
+  });
+
+  // 4) Save subscription
+  await api.post('/api/data/subscribe', { subscription: sub }, { withCredentials: true });
+
+  // 5) Socket.io
+  const socket = io(SOCKET_URL || BACKEND_URL, { withCredentials: true, transports: ['websocket', 'polling'] });
+  joinConversationIds.forEach(id => socket.emit('join-room', String(id)));
+  socket.on('message', payload => {
+    console.log('socket message', payload);
+  });
+
+  return { reg, sub, socket };
 }
 
 export async function checkNotificationPermission() {
