@@ -582,29 +582,22 @@ function Reserve({ selectedDates, setSelectedDates }) {
                 { withCredentials: true }
             );
 
-            if (response.data.success) {
-                // Send notification to host (production payload contract)
+                if (response.data.success) {
+                // Send notification to host (strict payload)
                 const bookingId = response.data.booking?.id || bookingData.listing_id;
-                const payload = {
-                    guestId: user.id,
-                    hostId: data.host_id,
-                    listingId: bookingData.listing_id,
-                    bookingId: bookingId,
-                    message: `New booking for "${data.title}" - Check-in: ${bookingData.check_in_date}, Check-out: ${bookingData.check_out_date}, Guests: ${bookingData.guests}`,
+                await sendBookingNotification({
+                    guestId: Number(user?.id),
+                    hostId: Number(data.host_id),
+                    listingId: Number(bookingData.listing_id),
+                    bookingId: Number(bookingId),
                     title: 'New Booking Confirmed!',
-                    body: `A new booking has been made for your listing "${data.title}".`,
+                    body: `A new booking has been made for "${data.title}".`,
                     data: {
-                        type: 'booking_confirmation',
-                        listing_id: bookingData.listing_id,
-                        listing_title: data.title,
-                        host_id: data.host_id,
-                        booking_id: bookingId,
                         check_in: bookingData.check_in_date,
                         check_out: bookingData.check_out_date,
                         guests: bookingData.guests
                     }
-                };
-                await sendBookingNotification(payload);
+                });
                 
                 // Show success message
                 alert('Booking confirmed! You will be redirected to messages to chat with your host.');
