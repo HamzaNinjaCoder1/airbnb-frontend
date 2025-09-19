@@ -10,6 +10,7 @@ import 'react-date-range/dist/theme/default.css';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { Islamabad, Rawalpindi } from './data';
+import { sendBookingNotification } from './services/notificationService';
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -478,68 +479,6 @@ function Reserve({ selectedDates, setSelectedDates }) {
     }, [successMessage]);
 
     // Functions
-    const sendBookingNotification = async (listingData, bookingData) => {
-        try {
-            // Get the correct image from database or fallback
-            const notificationImage = listingData.images && listingData.images.length > 0 
-                ? (listingData.images[0].image_url ? 
-                    (listingData.images[0].image_url.startsWith('http') 
-                        ? listingData.images[0].image_url 
-                        : `https://dynamic-tranquility-production.up.railway.app/uploads/${listingData.images[0].image_url}`)
-                    : listingData.image)
-                : listingData.image || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80';
-
-            // Send push notification to host
-            const notificationData = {
-                title: "New Booking Confirmed!",
-                body: `A new booking has been made for your listing "${listingData.title}".`,
-                image: notificationImage,
-                icon: "/icons/booking-icon.png",
-                badge: "/icons/badge-icon.png",
-                tag: `booking-${bookingData.listing_id}`,
-                requireInteraction: true,
-                data: {
-                    type: 'booking_confirmation',
-                    listing_id: listingData.id,
-                    listing_title: listingData.title,
-                    listing_image: notificationImage,
-                    host_id: listingData.host_id,
-                    booking_id: bookingData.listing_id,
-                    check_in: bookingData.check_in_date,
-                    check_out: bookingData.check_out_date,
-                    guests: bookingData.guests,
-                    total_price: bookingData.total_price
-                }
-            };
-
-            // Send notification via API to your production backend
-            try {
-                const response = await api.post('/api/data/notifications/send-booking', {
-                    guestId: user.id, // Current user ID (guest who made the booking)
-                    listingId: bookingData.listing_id, // The listing being booked
-                    bookingId: bookingData.listing_id, // Booking ID (using listing ID as fallback)
-                    message: `A new booking has been made for your listing "${listingData.title}". Check-in: ${bookingData.check_in_date}, Check-out: ${bookingData.check_out_date}, Guests: ${bookingData.guests}`
-                }, { 
-                    withCredentials: true,
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-                console.log('Booking notification sent successfully:', response.data);
-            } catch (apiError) {
-                console.warn('Failed to send notification via API, but booking was successful:', apiError);
-                console.warn('API Error details:', {
-                    status: apiError.response?.status,
-                    data: apiError.response?.data,
-                    message: apiError.message
-                });
-                // Don't throw error here as booking was successful
-            }
-        } catch (error) {
-            console.error('Error sending booking notification:', error);
-            throw error;
-        }
-    };
 
     const handleBookingConfirmation = async () => {
         if (!selectedDatesFromState || !guestDataFromState || !data || !isAuthenticated) {
@@ -644,21 +583,20 @@ function Reserve({ selectedDates, setSelectedDates }) {
             );
 
             if (response.data.success) {
-                // Ensure push subscription and send booking notification to host (production backend)
-                try {
-                    try { await navigator.serviceWorker.register('/service-worker.js'); } catch (_) {}
-                    try { if (Notification && Notification.permission !== 'granted') { await Notification.requestPermission(); } } catch (_) {}
-                    await sendBookingNotification(data, bookingData);
-                } catch (notificationError) {
-                    console.error('Failed to send booking notification:', notificationError);
-                }
+                // Send notification to host
+                await sendBookingNotification(
+                    user.id,
+                    data.host_id,
+                    bookingData.listing_id,
+                    bookingData.listing_id,
+                    data.title,
+                    bookingData.check_in_date,
+                    bookingData.check_out_date,
+                    bookingData.guests
+                );
                 
                 // Show success message
                 alert('Booking confirmed! You will be redirected to messages to chat with your host.');
-                
-                // Debug: Log the data being passed
-                console.log('Data object for booking notification:', data);
-                console.log('Booking data:', bookingData);
                 
                 // Navigate to messages page with listing data
                 const bookingNotificationData = {
@@ -678,8 +616,6 @@ function Reserve({ selectedDates, setSelectedDates }) {
                     },
                     booking: bookingData
                 };
-                
-                console.log('Booking notification data:', bookingNotificationData);
                 
                 navigate('/messages', { 
                     state: { 
