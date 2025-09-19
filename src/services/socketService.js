@@ -59,11 +59,8 @@ class SocketService {
 
   onMessage(callback) {
     if (!this.socket) return;
-    // Primary channel
+    // Listen on a single canonical channel to avoid duplicate events
     this.socket.on('message', callback);
-    // Common alternate event names some backends use
-    this.socket.on('new-message', callback);
-    this.socket.on('chat-message', callback);
   }
 
   onTyping(callback) {

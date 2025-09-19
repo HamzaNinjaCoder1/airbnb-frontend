@@ -441,7 +441,11 @@ function Messages() {
 				created_at: new Date().toISOString(),
 				status: 'sending'
 			}
-			setMessages(prev => [...prev, optimisticMessage])
+			setMessages(prev => {
+				// Prevent double-append of same optimistic message
+				if (prev.some(m => m.client_temp_id === clientTempId)) return prev
+				return [...prev, optimisticMessage]
+			})
 
 			const messageData = {
 				message: text,

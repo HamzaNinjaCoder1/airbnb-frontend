@@ -48,9 +48,11 @@ class MessagingService {
         throw new Error('Missing required fields: message, conversation_id, and receiver_id are required');
       }
 
-      // Log the payload for debugging
-      console.log('Sending message with payload:', payload);
-      console.log('API endpoint:', `${this.baseURL}/messages/send-message`);
+      // Avoid verbose logs in production
+      if (typeof import.meta !== 'undefined' && import.meta.env && !import.meta.env.PROD) {
+        console.log('Sending message with payload:', payload);
+        console.log('API endpoint:', `${this.baseURL}/messages/send-message`);
+      }
 
       const response = await api.post(`${this.baseURL}/messages/send-message`, payload, {
         withCredentials: true,
@@ -59,12 +61,16 @@ class MessagingService {
         }
       });
       
-      console.log('Message sent successfully:', response.data);
+      if (typeof import.meta !== 'undefined' && import.meta.env && !import.meta.env.PROD) {
+        console.log('Message sent successfully:', response.data);
+      }
       return response.data;
     } catch (error) {
       console.error('Error sending message:', error);
-      console.error('Error response:', error.response?.data);
-      console.error('Error status:', error.response?.status);
+      if (error.response) {
+        console.error('Error response:', error.response.data);
+        console.error('Error status:', error.response.status);
+      }
       throw error;
     }
   }

@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { BACKEND_URL } from './config';
 
 const api = axios.create({
-  baseURL: 'https://dynamic-tranquility-production.up.railway.app',
+  baseURL: BACKEND_URL,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json'

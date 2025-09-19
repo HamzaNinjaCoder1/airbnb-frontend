@@ -49,14 +49,11 @@ const ListingDetail = () => {
 
   const mapSrc = useMemo(() => {
     const query = encodeURIComponent(fullAddress || data?.city || '');
-    // Using Google Maps embed without API key for a place search
-    // Falls back gracefully if address is missing
     return `https://www.google.com/maps?q=${query}&output=embed`;
   }, [fullAddress, data]);
 
   const getImageUrl = (img) => {
     if (!img) return '';
-    // Support objects with image_url or plain strings
     const url = typeof img === 'object' ? (img.image_url || '') : img;
     if (!url) return '';
     return url.startsWith('http') ? url : `${UPLOADS_BASE_URL}${url}`;
@@ -67,29 +64,23 @@ const ListingDetail = () => {
       try {
         setLoading(true);
         const hostId = hostIdFromQs || user?.id;
-        // 1) Find listing meta (including city) for this host
         const resMeta = await api.get(`/api/data/listings/HostListingImages?hostId=${hostId}`);
         const list = resMeta?.data?.data || [];
         const foundMeta = list.find((l) => String(l.id || l.listing_id) === String(listingId));
         if (!foundMeta) throw new Error('Listing not found');
-
-        // 2) Load full listing data by city and filter by id
         const city = foundMeta.city;
         if (city) {
           const resCity = await api.get(`/api/data/listing/city/${encodeURIComponent(city)}`);
           const cityListings = Array.isArray(resCity?.data) ? resCity.data : [];
           const full = cityListings.find((it) => String(it.id) === String(foundMeta.listing_id || foundMeta.id));
           if (full) {
-            // backend returns images as objects in relations
             const imgs = Array.isArray(full.images) ? full.images : [];
             setData({ ...full });
             setImages(imgs);
             return;
           }
         }
-        // 3) Fallback to meta only
         setData(foundMeta);
-        // Fallback: meta may only include string filenames; normalize to objects
         const fallbackImgs = Array.isArray(foundMeta.images)
           ? foundMeta.images.map((im) => (typeof im === 'string' ? { image_url: im } : im))
           : [];
@@ -135,8 +126,6 @@ const ListingDetail = () => {
     const current = images?.[index];
     const imageId = current?.id || current?.image_id;
 
-    // If we don't have an image id (fallback data), we cannot replace accurately.
-    // In that rare case, try adding as a new photo instead.
     if (!imageId) {
       await handleAddPhoto(file);
       return;
@@ -179,7 +168,6 @@ const ListingDetail = () => {
       form.append('images', file);
       await api.post(`/api/data/upload-images?hostId=${hostIdFromQs}&listingId=${listingId}`, form);
 
-      // Refresh details from city to get image objects with ids
       const hostRes = await api.get(`/api/data/listings/HostListingImages?hostId=${hostIdFromQs}`);
       const list = hostRes?.data?.data || [];
       const foundMeta = list.find((l) => String(l.id || l.listing_id) === String(listingId));
@@ -194,7 +182,6 @@ const ListingDetail = () => {
         }
       }
 
-      // Fallback to meta images if city fetch fails
       const latestImages = Array.isArray(foundMeta?.images)
         ? foundMeta.images.map((im) => (typeof im === 'string' ? { image_url: im } : im))
         : [];
@@ -228,26 +215,21 @@ const ListingDetail = () => {
             <div className="text-sm text-gray-500">{fullAddress || 'No address provided'}</div>
           </div>
 
-          <div>
-            <div className="text-base font-medium mb-2">Photos</div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {Array.from({ length: 6 }).map((_, i) => {
-                const img = images[i];
-                return (
-                  <div key={i} className="relative group rounded-xl overflow-hidden bg-gray-100 h-40">
-                    {img ? (
-                      <img src={getImageUrl(img)} className="w-full h-full object-cover"/>
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-500">No image</div>
-                    )}
+          {Array.isArray(images) && images.filter(Boolean).length > 0 && (
+            <div>
+              <div className="text-base font-medium mb-2">Photos</div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {images.filter(Boolean).map((img, i) => (
+                  <div key={i} className="relative group rounded-xl overflow-hidden bg-gray-100 h-48 md:h-56">
+                    <img src={getImageUrl(img)} className="w-full h-full object-cover"/>
                     <label className="absolute bottom-2 right-2 px-3 py-1 text-xs bg-black text-white rounded-lg opacity-0 group-hover:opacity-100 cursor-pointer">Replace
                       <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleReplaceImage(i, e.target.files[0])} />
                     </label>
                   </div>
-                );
-              })}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="space-y-2">
             <EditableField label="Title" value={data?.title} onChange={(v) => setData((d) => ({ ...d, title: v }))} />
@@ -268,18 +250,20 @@ const ListingDetail = () => {
           </div>
         </div>
 
-        <div className="lg:col-span-1 space-y-6">
-          <div className="border rounded-xl p-4 space-y-4">
+        <div className="lg:col-span-1">
+          <div className="lg:sticky lg:top-24 space-y-6">
+            <div className="border rounded-xl p-4 space-y-4">
             <div className="text-base font-medium">Pricing</div>
             <EditableField label="Price per night" value={String(price)} onChange={(v) => setData((d) => ({ ...d, price_per_night: v.replace(/[^0-9]/g, '') }))} />
             <div className="text-sm text-gray-600">Shown to guests: ${price}</div>
-          </div>
+            </div>
 
-          <div className="border rounded-xl p-4 space-y-4">
+            <div className="border rounded-xl p-4 space-y-4">
             <div className="text-base font-medium">Location</div>
             <EditableField label="Address" value={data?.address} onChange={(v) => setData((d) => ({ ...d, address: v }))} />
             <EditableField label="City" value={data?.city} onChange={(v) => setData((d) => ({ ...d, city: v }))} />
             <EditableField label="Country" value={data?.country} onChange={(v) => setData((d) => ({ ...d, country: v }))} />
+            </div>
           </div>
         </div>
       </div>
