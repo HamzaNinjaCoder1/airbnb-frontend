@@ -1,5 +1,8 @@
 import api from "./api";
 
+// VAPID Public Key for push notifications
+const VAPID_PUBLIC_KEY = "BP0OJzfIv3gutn2bu2VbP3Y062ZYRhtLNiYxxDe_OM1aueh7bJKcx5S72UzsRs40kFsukwOxfV13oTUJo-3vOFU";
+
 export async function subscribeUser() {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
     console.log("Push notifications not supported");
@@ -25,18 +28,10 @@ export async function subscribeUser() {
       return { success: true, subscription: existingSubscription };
     }
 
-    // Get VAPID public key from backend
-    const vapidResp = await api.get('/api/data/vapid-public-key', { withCredentials: true });
-    const key = vapidResp?.data?.key;
-    if (!key) {
-      console.log("No VAPID key available from backend");
-      return { success: false, error: "No VAPID key available" };
-    }
-
-    // Subscribe to push notifications
+    // Use the hardcoded VAPID public key
     const subscription = await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(key),
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
     });
 
     // Send subscription to backend
@@ -51,8 +46,6 @@ export async function subscribeUser() {
 }
 
 export async function initPushAndSocket(authToken, { joinConversationIds = [] } = {}) {
-  // This function is kept for compatibility but simplified
-  // The main push subscription is handled by subscribeUser()
   try {
     const result = await subscribeUser();
     return result.success ? { reg: null, sub: result.subscription, socket: null } : null;
