@@ -169,7 +169,6 @@ function Messages() {
 	const messagesEndRef = useRef(null)
 	const typingTimeoutRef = useRef(null)
 	const currentRoomRef = useRef(null)
-	const remoteTypingTimeoutRef = useRef(null)
 
 	// Initialize socket connection and load conversations
 	useEffect(() => {
@@ -177,13 +176,6 @@ function Messages() {
 			initializeMessaging()
 		}
 		return () => {
-			// cleanup
-			if (typingTimeoutRef.current) {
-				clearTimeout(typingTimeoutRef.current)
-			}
-			if (remoteTypingTimeoutRef.current) {
-				clearTimeout(remoteTypingTimeoutRef.current)
-			}
 			socketService.disconnect()
 		}
 	}, [isAuthenticated, user])
@@ -230,7 +222,7 @@ function Messages() {
 		const params = new URLSearchParams(location.search)
 		params.set('conversationId', activeConversationId)
 		navigate({ pathname: '/messages', search: params.toString() }, { replace: true })
-	}, [activeConversationId, location.search, navigate])
+	}, [activeConversationId])
 
 	// Scroll to bottom when messages change
 	useEffect(() => {
@@ -239,7 +231,7 @@ function Messages() {
 
 	// Get active conversation data
 	const activeConversation = useMemo(() => 
-		conversations.find(c => c.id === parseInt(activeConversationId, 10)), 
+		conversations.find(c => c.id === parseInt(activeConversationId)), 
 		[conversations, activeConversationId]
 	)
 
@@ -333,18 +325,14 @@ function Messages() {
 	const setupSocketListeners = () => {
 		// Listen for typing indicators referencing currentRoomRef to avoid stale closures
 		socketService.onTyping((data) => {
-			if (data.conversationId === parseInt(currentRoomRef.current, 10)) {
+			if (data.conversationId === parseInt(currentRoomRef.current)) {
 				setIsTyping(true)
-				// Fallback auto-stop if remote stop event is missed
-				if (remoteTypingTimeoutRef.current) clearTimeout(remoteTypingTimeoutRef.current)
-				remoteTypingTimeoutRef.current = setTimeout(() => setIsTyping(false), 2000)
 			}
 		})
 
 		socketService.onStopTyping((data) => {
-			if (data.conversationId === parseInt(currentRoomRef.current, 10)) {
+			if (data.conversationId === parseInt(currentRoomRef.current)) {
 				setIsTyping(false)
-				if (remoteTypingTimeoutRef.current) clearTimeout(remoteTypingTimeoutRef.current)
 			}
 		})
 	}
@@ -366,8 +354,8 @@ function Messages() {
 			setConversations(prevConvs => {
 				return prevConvs.map(conv => {
 					if (conv.id === newMessage.conversation_id) {
-						const isActiveRoom = parseInt(currentRoomRef.current, 10) === newMessage.conversation_id
-						const isIncoming = newMessage.sender_id !== (user?.id)
+						const isActiveRoom = parseInt(currentRoomRef.current) === newMessage.conversation_id
+						const isIncoming = newMessage.sender_id !== user.id
 						return {
 							...conv,
 							latestMessage: newMessage,
@@ -379,7 +367,7 @@ function Messages() {
 			})
 
 			// Append to open thread if it's the active room
-			if (parseInt(currentRoomRef.current, 10) === newMessage.conversation_id) {
+			if (parseInt(currentRoomRef.current) === newMessage.conversation_id) {
 				setMessages(prev => {
 					// If message already exists by id, ignore
 					if (newMessage.id && prev.some(existing => existing.id === newMessage.id)) {
@@ -394,7 +382,7 @@ function Messages() {
 							return updated
 						}
 					}
-					const enriched = (newMessage.sender_id !== (user?.id)) ? { ...newMessage, status: newMessage.status || 'seen' } : newMessage
+					const enriched = (newMessage.sender_id !== user.id) ? { ...newMessage, status: newMessage.status || 'seen' } : newMessage
 					return [...prev, enriched]
 				})
 			}
@@ -410,7 +398,7 @@ function Messages() {
 			socketService.removeListener('new-message')
 			socketService.removeListener('chat-message')
 		}
-	}, [activeConversationId, user?.id])
+	}, [activeConversationId])
 
 	// Periodic auto-refresh as a safety net in case socket events are missed
 	useEffect(() => {
@@ -447,7 +435,7 @@ function Messages() {
 				id: clientTempId,
 				client_temp_id: clientTempId,
 				message_text: text,
-				conversation_id: parseInt(activeConversationId, 10),
+				conversation_id: parseInt(activeConversationId),
 				sender_id: user.id,
 				receiver_id: activeConversation.otherUser.id,
 				created_at: new Date().toISOString(),
@@ -461,12 +449,13 @@ function Messages() {
 
 			const messageData = {
 				message: text,
-				conversation_id: parseInt(activeConversationId, 10),
+				conversation_id: parseInt(activeConversationId),
 				receiver_id: activeConversation.otherUser.id,
 				client_temp_id: clientTempId
 			}
 
 			const resp = await messagingService.sendMessage(messageData)
+			// If API returns the saved message, reconcile status immediately
 			if (resp && resp.success && resp.message) {
 				setMessages(prev => {
 					const idx = prev.findIndex(m => m.client_temp_id === clientTempId)
@@ -477,25 +466,34 @@ function Messages() {
 				})
 			}
 			setMessageInput('')
+
+			// Emit message via socket so other participants get it instantly
 			socketService.emitMessage(messageData)
+			
+			// Stop typing indicator
 			socketService.emitStopTyping(activeConversationId)
 			
 		} catch (error) {
 			console.error('Error sending message:', error)
-			setMessages(prev => prev.map(m => m.client_temp_id === clientTempId ? { ...m, status: 'failed' } : m))
+			// Mark optimistic message as failed
+			setMessages(prev => prev.map(m => m.status === 'sending' ? { ...m, status: 'failed' } : m))
 			setError('Failed to send message')
 		}
 	}
+
+	// When viewing a conversation, mark incoming messages as seen locally
 	useEffect(() => {
-		if (!activeConversationId || !user) return
+		if (!activeConversationId) return
+		// Mark messages from other user as seen
 		setMessages(prev => prev.map(m => {
-			if (m.conversation_id === parseInt(activeConversationId, 10) && m.sender_id !== user.id) {
+			if (m.conversation_id === parseInt(activeConversationId) && m.sender_id !== user.id) {
 				return { ...m, status: 'seen' }
 			}
 			return m
 		}))
-		setConversations(prev => prev.map(c => c.id === parseInt(activeConversationId, 10) ? { ...c, unreadCount: 0 } : c))
-	}, [activeConversationId, user])
+		// Clear unread count for the opened conversation
+		setConversations(prev => prev.map(c => c.id === parseInt(activeConversationId) ? { ...c, unreadCount: 0 } : c))
+	}, [activeConversationId])
 
 	const handleTyping = () => {
 		if (!activeConversationId) return
@@ -513,18 +511,19 @@ function Messages() {
 			socketService.emitStopTyping(activeConversationId)
 		}, 1000)
 	}
+
+	// Filter conversations based on search query
 	const filteredConversations = useMemo(() => {
 		if (!searchQuery.trim()) return conversations
-		const q = searchQuery.toLowerCase()
 		return conversations.filter(conv => 
-			(conv.otherUser?.name && conv.otherUser.name.toLowerCase().includes(q)) ||
-			(typeof conv.latestMessage?.message_text === 'string' && conv.latestMessage.message_text.toLowerCase().includes(q))
+			conv.otherUser.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+			(conv.latestMessage && conv.latestMessage.message_text.toLowerCase().includes(searchQuery.toLowerCase()))
 		)
 	}, [conversations, searchQuery])
+
+	// Format time for display
 	const formatTime = (timestamp) => {
-		if (!timestamp) return ''
 		const date = new Date(timestamp)
-		if (isNaN(date.getTime())) return ''
 		const now = new Date()
 		const diffInHours = (now - date) / (1000 * 60 * 60)
 		
@@ -536,8 +535,9 @@ function Messages() {
 			return date.toLocaleDateString([], { month: 'short', day: 'numeric' })
 		}
 	}
+
+	// Check if message is from current user
 	const isMessageFromMe = (message) => {
-		if (!user) return false
 		return message.sender_id === user.id
 	}
 
@@ -653,10 +653,10 @@ function Messages() {
 										className={`w-full flex items-center gap-4 px-6 py-4 hover:bg-gray-50 transition-all duration-200 group ${activeConversationId === conv.id ? 'bg-gray-50 border-r-4 border-blue-500' : ''}`}
 								>
 									<div className="relative">
-											{conv.otherUser?.profile_picture ? (
+											{conv.otherUser.profile_picture ? (
 												<img 
 													src={conv.otherUser.profile_picture} 
-													alt={conv.otherUser?.name || 'User'} 
+													alt={conv.otherUser.name} 
 													className="w-14 h-14 rounded-full object-cover flex-shrink-0 ring-2 ring-white shadow-md" 
 												/>
 											) : (
@@ -664,7 +664,7 @@ function Messages() {
 													size="w-14 h-14" 
 													ringColor="ring-white" 
 													shadow={true}
-													name={conv.otherUser?.name}
+													name={conv.otherUser.name}
 													showInitials={true}
 												/>
 											)}
@@ -673,18 +673,18 @@ function Messages() {
 									<div className="flex-1 min-w-0 text-left">
 										<div className="flex items-center justify-between gap-2">
 												<p className="text-sm font-semibold text-gray-900 truncate group-hover:text-blue-700 transition-colors">
-													{conv.otherUser?.name || 'User'}
+													{conv.otherUser.name}
 												</p>
 												<span className="text-xs text-gray-500 font-medium">
 													{conv.latestMessage ? formatTime(conv.latestMessage.created_at) : ''}
 												</span>
 											</div>
 											<p className="text-sm text-gray-600 truncate mt-1 group-hover:text-gray-700 transition-colors">
-												{typeof conv.latestMessage?.message_text === 'string' ? conv.latestMessage.message_text : 'No messages yet'}
+												{conv.latestMessage ? conv.latestMessage.message_text : 'No messages yet'}
 											</p>
-											{/* Unread count could be added here if available */}
 										</div>
-								</button>
+										{/* Unread count could be added here if available */}
+									</button>
 								))
 							)}
 						</div>
@@ -697,10 +697,10 @@ function Messages() {
 							{activeConversation && (
 								<>
 									<div className="relative">
-										{activeConversation.otherUser?.profile_picture ? (
+										{activeConversation.otherUser.profile_picture ? (
 											<img 
 												src={activeConversation.otherUser.profile_picture} 
-												alt={activeConversation.otherUser?.name || 'User'} 
+												alt={activeConversation.otherUser.name} 
 												className="w-12 h-12 rounded-full object-cover ring-2 ring-blue-100 shadow-md" 
 											/>
 										) : (
@@ -708,14 +708,14 @@ function Messages() {
 												size="w-12 h-12" 
 												ringColor="ring-blue-100" 
 												shadow={true}
-												name={activeConversation.otherUser?.name}
+												name={activeConversation.otherUser.name}
 												showInitials={true}
 											/>
 										)}
 										{/* Online status could be added here if available */}
 									</div>
 									<div className="min-w-0 flex-1">
-										<p className="text-lg font-semibold text-gray-900">{activeConversation.otherUser?.name || 'User'}</p>
+										<p className="text-lg font-semibold text-gray-900">{activeConversation.otherUser.name}</p>
 										<p className="text-sm text-gray-500">
 											{/* Online status could be shown here */}
 											{activeConversation.latestMessage ? 'Last seen recently' : 'Active'}
@@ -768,20 +768,20 @@ function Messages() {
 														<div className={`flex items-center justify-end gap-2 mt-2 ${fromMe ? 'text-gray-300' : 'text-gray-400'}`}>
 															<span className="text-xs font-medium">{formatTime(m.created_at)}</span>
 															<MessageStatus status={m.status} fromMe={fromMe} />
-														</div>
-													</div>
-													{/* Speech bubble tail */}
-													<div className={`absolute ${fromMe ? 'right-[-6px] top-4' : 'left-[-6px] top-4'}`}>
-														<div className={`w-0 h-0 ${fromMe ? 'border-l-[6px] border-l-black border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent' : 'border-r-[6px] border-r-white border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent'}`}></div>
-													</div>
-													{/* Border tail for received messages */}
-													{!fromMe && (
-													<div className="absolute left-[-7px] top-4">
-														<div className="w-0 h-0 border-r-[7px] border-r-gray-200 border-t-[7px] border-t-transparent border-b-[7px] border-b-transparent"></div>
-													</div>
-													)}
 												</div>
 											</div>
+											{/* Speech bubble tail */}
+													<div className={`absolute ${fromMe ? 'right-[-6px] top-4' : 'left-[-6px] top-4'}`}>
+														<div className={`w-0 h-0 ${fromMe ? 'border-l-[6px] border-l-black border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent' : 'border-r-[6px] border-r-white border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent'}`}></div>
+											</div>
+											{/* Border tail for received messages */}
+													{!fromMe && (
+												<div className="absolute left-[-7px] top-4">
+													<div className="w-0 h-0 border-r-[7px] border-r-gray-200 border-t-[7px] border-t-transparent border-b-[7px] border-b-transparent"></div>
+												</div>
+											)}
+										</div>
+									</div>
 										)
 									})
 								)}
@@ -803,17 +803,17 @@ function Messages() {
 											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
 										</svg>
 									</button>
-									<input
-										type="text"
-										value={messageInput}
-										onChange={(e) => {
-											setMessageInput(e.target.value)
-											handleTyping()
-										}}
-											placeholder="Type a message..."
-											className="flex-1 bg-transparent text-sm focus:outline-none placeholder-gray-500"
-											onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-										/>
+								<input
+									type="text"
+									value={messageInput}
+									onChange={(e) => {
+										setMessageInput(e.target.value)
+										handleTyping()
+									}}
+										placeholder="Type a message..."
+										className="flex-1 bg-transparent text-sm focus:outline-none placeholder-gray-500"
+									onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+								/>
 									<button className="p-2 hover:bg-gray-200 rounded-full transition-colors">
 										<svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -898,13 +898,13 @@ function Messages() {
 									<button
 											key={conv.id}
 											onClick={() => handleSelectConversation(conv.id)}
-											className="w-full flex items-center gap-4 px-4 py-4 hover:bg-gray-50 transition-all duration-200 border-b border-gray-100 group"
-										>
+										className="w-full flex items-center gap-4 px-4 py-4 hover:bg-gray-50 transition-all duration-200 border-b border-gray-100 group"
+									>
 										<div className="relative">
-												{conv.otherUser?.profile_picture ? (
+												{conv.otherUser.profile_picture ? (
 													<img 
 														src={conv.otherUser.profile_picture} 
-														alt={conv.otherUser?.name || 'User'} 
+														alt={conv.otherUser.name} 
 														className="w-14 h-14 rounded-full object-cover flex-shrink-0 ring-2 ring-white shadow-md" 
 													/>
 												) : (
@@ -912,7 +912,7 @@ function Messages() {
 														size="w-14 h-14" 
 														ringColor="ring-white" 
 														shadow={true}
-														name={conv.otherUser?.name}
+														name={conv.otherUser.name}
 														showInitials={true}
 													/>
 												)}
@@ -921,18 +921,18 @@ function Messages() {
 										<div className="flex-1 min-w-0 text-left">
 											<div className="flex items-center justify-between gap-2">
 													<p className="text-sm font-semibold text-gray-900 truncate group-hover:text-blue-700 transition-colors">
-														{conv.otherUser?.name || 'User'}
+														{conv.otherUser.name}
 													</p>
 													<span className="text-xs text-gray-500 font-medium">
 														{conv.latestMessage ? formatTime(conv.latestMessage.created_at) : ''}
 													</span>
 												</div>
 												<p className="text-sm text-gray-600 truncate mt-1 group-hover:text-gray-700 transition-colors">
-													{typeof conv.latestMessage?.message_text === 'string' ? conv.latestMessage.message_text : 'No messages yet'}
+													{conv.latestMessage ? conv.latestMessage.message_text : 'No messages yet'}
 												</p>
-												{/* Unread count could be added here if available */}
 											</div>
-									</button>
+											{/* Unread count could be added here if available */}
+										</button>
 									))
 								)}
 							</div>
@@ -953,10 +953,10 @@ function Messages() {
 								{activeConversation && (
 									<>
 										<div className="relative">
-											{activeConversation.otherUser?.profile_picture ? (
+											{activeConversation.otherUser.profile_picture ? (
 												<img 
 													src={activeConversation.otherUser.profile_picture} 
-													alt={activeConversation.otherUser?.name || 'User'} 
+													alt={activeConversation.otherUser.name} 
 													className="w-12 h-12 rounded-full object-cover ring-2 ring-blue-100 shadow-md" 
 												/>
 											) : (
@@ -964,14 +964,14 @@ function Messages() {
 													size="w-12 h-12" 
 													ringColor="ring-blue-100" 
 													shadow={true}
-													name={activeConversation.otherUser?.name}
+													name={activeConversation.otherUser.name}
 													showInitials={true}
 												/>
 											)}
 											{/* Online status could be added here if available */}
 										</div>
 										<div className="min-w-0 flex-1">
-											<p className="text-lg font-semibold text-gray-900">{activeConversation.otherUser?.name || 'User'}</p>
+											<p className="text-lg font-semibold text-gray-900">{activeConversation.otherUser.name}</p>
 											<p className="text-sm text-gray-500">
 												{activeConversation.latestMessage ? 'Last seen recently' : 'Active'}
 											</p>
@@ -1008,68 +1008,68 @@ function Messages() {
 														) : (
 															<p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{m.message_text}</p>
 														)}
-														<div className={`flex items-center justify-end gap-2 mt-2 ${fromMe ? 'text-gray-300' : 'text-gray-400'}`}>
-															<span className="text-xs font-medium">{formatTime(m.created_at)}</span>
-															<MessageStatus status={m.status} fromMe={fromMe} />
-														</div>
+															<div className={`flex items-center justify-end gap-2 mt-2 ${fromMe ? 'text-gray-300' : 'text-gray-400'}`}>
+																<span className="text-xs font-medium">{formatTime(m.created_at)}</span>
+																<MessageStatus status={m.status} fromMe={fromMe} />
 													</div>
-													{/* Speech bubble tail */}
-													<div className={`absolute ${fromMe ? 'right-[-6px] top-4' : 'left-[-6px] top-4'}`}>
-														<div className={`w-0 h-0 ${fromMe ? 'border-l-[6px] border-l-black border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent' : 'border-r-[6px] border-r-white border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent'}`}></div>
-													</div>
-													{/* Border tail for received messages */}
-													{!fromMe && (
+												</div>
+												{/* Speech bubble tail */}
+														<div className={`absolute ${fromMe ? 'right-[-6px] top-4' : 'left-[-6px] top-4'}`}>
+															<div className={`w-0 h-0 ${fromMe ? 'border-l-[6px] border-l-black border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent' : 'border-r-[6px] border-r-white border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent'}`}></div>
+												</div>
+												{/* Border tail for received messages */}
+														{!fromMe && (
 													<div className="absolute left-[-7px] top-4">
 														<div className="w-0 h-0 border-r-[7px] border-r-gray-200 border-t-[7px] border-t-transparent border-b-[7px] border-b-transparent"></div>
 													</div>
-													)}
-												</div>
+												)}
 											</div>
-										)
-									})
-								)}
-								{isTyping && (
-									<div className="flex justify-start">
-										<TypingIndicator isTyping={isTyping} />
-									</div>
-								)}
-								<div ref={messagesEndRef} />
+										</div>
+											)
+										})
+									)}
+									{isTyping && (
+										<div className="flex justify-start">
+											<TypingIndicator isTyping={isTyping} />
+										</div>
+									)}
+									<div ref={messagesEndRef} />
+								</div>
 							</div>
-						</div>
 
-						{/* Mobile Composer */}
-						<div className="border-t border-gray-200 p-4 bg-white shadow-lg">
-							<div className="flex items-center gap-3 bg-gray-50 rounded-full px-4 py-3 border border-gray-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all duration-200">
-								<button className="p-2 hover:bg-gray-200 rounded-full transition-colors">
-									<svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-									</svg>
-								</button>
-								<input
-									type="text"
-									value={messageInput}
-									onChange={(e) => {
-										setMessageInput(e.target.value)
-										handleTyping()
-									}}
-									placeholder="Type a message..."
-									className="flex-1 bg-transparent text-sm focus:outline-none placeholder-gray-500"
-									onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-								/>
-								<button 
-									onClick={handleSend} 
-									disabled={!messageInput.trim()}
-									className="inline-flex items-center justify-center rounded-full w-10 h-10 bg-black/90 backdrop-blur-sm hover:bg-black disabled:bg-gray-300 text-white transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-none disabled:cursor-not-allowed"
-								>
-									<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-										<path d="M22 2L11 13"></path>
-										<path d="M22 2l-7 20-4-9-9-4 20-7z"></path>
-									</svg>
-								</button>
+							{/* Mobile Composer */}
+							<div className="border-t border-gray-200 p-4 bg-white shadow-lg">
+								<div className="flex items-center gap-3 bg-gray-50 rounded-full px-4 py-3 border border-gray-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all duration-200">
+									<button className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+										<svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+										</svg>
+									</button>
+									<input
+										type="text"
+										value={messageInput}
+										onChange={(e) => {
+											setMessageInput(e.target.value)
+											handleTyping()
+										}}
+										placeholder="Type a message..."
+										className="flex-1 bg-transparent text-sm focus:outline-none placeholder-gray-500"
+										onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+									/>
+									<button 
+										onClick={handleSend} 
+										disabled={!messageInput.trim()}
+										className="inline-flex items-center justify-center rounded-full w-10 h-10 bg-black/90 backdrop-blur-sm hover:bg-black disabled:bg-gray-300 text-white transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-none disabled:cursor-not-allowed"
+									>
+										<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+											<path d="M22 2L11 13"></path>
+											<path d="M22 2l-7 20-4-9-9-4 20-7z"></path>
+										</svg>
+									</button>
+								</div>
 							</div>
 						</div>
-					</div>
-				)}
+					)}
 			</div>
 		</div>
 	)

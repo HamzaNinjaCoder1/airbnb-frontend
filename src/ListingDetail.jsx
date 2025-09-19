@@ -52,23 +52,19 @@ const ListingDetail = () => {
     return `https://www.google.com/maps?q=${query}&output=embed`;
   }, [fullAddress, data]);
 
-  // Define before first use to avoid temporal dead zone in production builds
-  function getImageUrl(img) {
+  const gallery = useMemo(() => {
+    const base = Array.isArray(images) ? images.slice(0, 5) : [];
+    // pad to 5 without showing any text placeholders; empty tiles remain blank but replaceable
+    while (base.length < 5) base.push(null);
+    return base.slice(0, 5);
+  }, [images]);
+
+  const getImageUrl = (img) => {
     if (!img) return '';
     const url = typeof img === 'object' ? (img.image_url || '') : img;
     if (!url) return '';
     return url.startsWith('http') ? url : `${UPLOADS_BASE_URL}${url}`;
-  }
-
-  const galleryImages = useMemo(() => {
-    const resolved = (Array.isArray(images) ? images : [])
-      .map((im) => getImageUrl(im))
-      .filter(Boolean);
-    const placeholders = new Array(5).fill(
-      'https://images.unsplash.com/photo-1501183638710-841dd1904471?q=80&w=1600&auto=format&fit=crop'
-    );
-    return [...resolved, ...placeholders].slice(0, 5);
-  }, [images]);
+  };
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -229,20 +225,45 @@ const ListingDetail = () => {
           <div>
             <div className="text-base font-medium mb-2">Photos</div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
-              <div className="col-span-2 row-span-2 h-56 md:h-80 rounded-xl overflow-hidden">
-                <img src={galleryImages[0]} className="w-full h-full object-cover" />
+              <div className="col-span-2 row-span-2 h-56 md:h-80 rounded-xl overflow-hidden relative bg-gray-100">
+                {gallery[0] && (
+                  <img src={getImageUrl(gallery[0])} className="w-full h-full object-cover" />
+                )}
+                <label className="absolute bottom-2 right-2 px-3 py-1 text-xs bg-black text-white rounded-lg opacity-90 hover:opacity-100 cursor-pointer">Replace
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleReplaceImage(0, e.target.files[0])} />
+                </label>
               </div>
-              <div className="h-28 md:h-36 rounded-xl overflow-hidden">
-                <img src={galleryImages[1]} className="w-full h-full object-cover" />
+              <div className="h-28 md:h-36 rounded-xl overflow-hidden relative bg-gray-100">
+                {gallery[1] && (
+                  <img src={getImageUrl(gallery[1])} className="w-full h-full object-cover" />
+                )}
+                <label className="absolute bottom-2 right-2 px-3 py-1 text-xs bg-black text-white rounded-lg opacity-90 hover:opacity-100 cursor-pointer">Replace
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleReplaceImage(1, e.target.files[0])} />
+                </label>
               </div>
-              <div className="h-28 md:h-36 rounded-xl overflow-hidden">
-                <img src={galleryImages[2]} className="w-full h-full object-cover" />
+              <div className="h-28 md:h-36 rounded-xl overflow-hidden relative bg-gray-100">
+                {gallery[2] && (
+                  <img src={getImageUrl(gallery[2])} className="w-full h-full object-cover" />
+                )}
+                <label className="absolute bottom-2 right-2 px-3 py-1 text-xs bg-black text-white rounded-lg opacity-90 hover:opacity-100 cursor-pointer">Replace
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleReplaceImage(2, e.target.files[0])} />
+                </label>
               </div>
-              <div className="h-28 md:h-36 rounded-xl overflow-hidden">
-                <img src={galleryImages[3]} className="w-full h-full object-cover" />
+              <div className="h-28 md:h-36 rounded-xl overflow-hidden relative bg-gray-100">
+                {gallery[3] && (
+                  <img src={getImageUrl(gallery[3])} className="w-full h-full object-cover" />
+                )}
+                <label className="absolute bottom-2 right-2 px-3 py-1 text-xs bg-black text-white rounded-lg opacity-90 hover:opacity-100 cursor-pointer">Replace
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleReplaceImage(3, e.target.files[0])} />
+                </label>
               </div>
-              <div className="relative h-28 md:h-36 rounded-xl overflow-hidden">
-                <img src={galleryImages[4]} className="w-full h-full object-cover" />
+              <div className="relative h-28 md:h-36 rounded-xl overflow-hidden bg-gray-100">
+                {gallery[4] && (
+                  <img src={getImageUrl(gallery[4])} className="w-full h-full object-cover" />
+                )}
+                <label className="absolute bottom-2 right-2 px-3 py-1 text-xs bg-black text-white rounded-lg opacity-90 hover:opacity-100 cursor-pointer">Replace
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleReplaceImage(4, e.target.files[0])} />
+                </label>
               </div>
             </div>
           </div>
