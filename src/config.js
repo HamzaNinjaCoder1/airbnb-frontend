@@ -17,8 +17,8 @@ export const API_BASE_URL = `${BACKEND_URL}`; // keep full origin; consumers use
 // Static uploads (served from backend)
 export const UPLOADS_BASE_URL = `${BACKEND_URL}/uploads/`;
 
-// Socket.IO endpoint
-export const SOCKET_URL = BACKEND_URL;
+// Socket.IO endpoint (explicit per request)
+export const SOCKET_URL = 'https://dynamic-tranquility-production.up.railway.app';
 
 // Allowed frontend origins (useful for diagnostics/UI, not programmatic CORS)
 export const FRONTEND_ORIGINS = [

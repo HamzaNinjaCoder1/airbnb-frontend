@@ -3,10 +3,26 @@ import api from "./api";
 const VAPID_PUBLIC_KEY =
   "BEl62iUYgUivxIkv69yViEuiBIa40HI8w0-8jWvJ3_sjXvOwQ63YPgZ_RxI3Ew5_S7F5URD0DXfq2d5eT7Y6B2A";
 
+function isProductionOrigin() {
+  try {
+    if (typeof window === 'undefined') return false;
+    const origin = window.location.origin || '';
+    const isHttps = window.location.protocol === 'https:';
+    const isLocalhost = /^(http:\/\/)?(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
+    return isHttps && !isLocalhost;
+  } catch (_) {
+    return false;
+  }
+}
+
 export async function subscribeUser() {
   if (!("serviceWorker" in navigator)) {
     console.error("Service workers not supported");
     return { success: false, error: "Service workers not supported" };
+  }
+  if (!isProductionOrigin()) {
+    console.log("Skipping push subscription on non-production origin");
+    return { success: false, error: "Non-production origin" };
   }
 
   try {

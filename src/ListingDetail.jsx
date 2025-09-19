@@ -52,6 +52,16 @@ const ListingDetail = () => {
     return `https://www.google.com/maps?q=${query}&output=embed`;
   }, [fullAddress, data]);
 
+  const galleryImages = useMemo(() => {
+    const resolved = (Array.isArray(images) ? images : [])
+      .map((im) => getImageUrl(im))
+      .filter(Boolean);
+    const placeholders = new Array(5).fill(
+      'https://images.unsplash.com/photo-1501183638710-841dd1904471?q=80&w=1600&auto=format&fit=crop'
+    );
+    return [...resolved, ...placeholders].slice(0, 5);
+  }, [images]);
+
   const getImageUrl = (img) => {
     if (!img) return '';
     const url = typeof img === 'object' ? (img.image_url || '') : img;
@@ -215,21 +225,26 @@ const ListingDetail = () => {
             <div className="text-sm text-gray-500">{fullAddress || 'No address provided'}</div>
           </div>
 
-          {Array.isArray(images) && images.filter(Boolean).length > 0 && (
-            <div>
-              <div className="text-base font-medium mb-2">Photos</div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {images.filter(Boolean).map((img, i) => (
-                  <div key={i} className="relative group rounded-xl overflow-hidden bg-gray-100 h-48 md:h-56">
-                    <img src={getImageUrl(img)} className="w-full h-full object-cover"/>
-                    <label className="absolute bottom-2 right-2 px-3 py-1 text-xs bg-black text-white rounded-lg opacity-0 group-hover:opacity-100 cursor-pointer">Replace
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleReplaceImage(i, e.target.files[0])} />
-                    </label>
-                  </div>
-                ))}
+          <div>
+            <div className="text-base font-medium mb-2">Photos</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
+              <div className="col-span-2 row-span-2 h-56 md:h-80 rounded-xl overflow-hidden">
+                <img src={galleryImages[0]} className="w-full h-full object-cover" />
+              </div>
+              <div className="h-28 md:h-36 rounded-xl overflow-hidden">
+                <img src={galleryImages[1]} className="w-full h-full object-cover" />
+              </div>
+              <div className="h-28 md:h-36 rounded-xl overflow-hidden">
+                <img src={galleryImages[2]} className="w-full h-full object-cover" />
+              </div>
+              <div className="h-28 md:h-36 rounded-xl overflow-hidden">
+                <img src={galleryImages[3]} className="w-full h-full object-cover" />
+              </div>
+              <div className="relative h-28 md:h-36 rounded-xl overflow-hidden">
+                <img src={galleryImages[4]} className="w-full h-full object-cover" />
               </div>
             </div>
-          )}
+          </div>
 
           <div className="space-y-2">
             <EditableField label="Title" value={data?.title} onChange={(v) => setData((d) => ({ ...d, title: v }))} />
