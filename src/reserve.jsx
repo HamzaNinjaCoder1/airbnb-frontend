@@ -583,17 +583,28 @@ function Reserve({ selectedDates, setSelectedDates }) {
             );
 
             if (response.data.success) {
-                // Send notification to host
-                await sendBookingNotification(
-                    user.id,
-                    data.host_id,
-                    bookingData.listing_id,
-                    bookingData.listing_id,
-                    data.title,
-                    bookingData.check_in_date,
-                    bookingData.check_out_date,
-                    bookingData.guests
-                );
+                // Send notification to host (production payload contract)
+                const bookingId = response.data.booking?.id || bookingData.listing_id;
+                const payload = {
+                    guestId: user.id,
+                    hostId: data.host_id,
+                    listingId: bookingData.listing_id,
+                    bookingId: bookingId,
+                    message: `New booking for "${data.title}" - Check-in: ${bookingData.check_in_date}, Check-out: ${bookingData.check_out_date}, Guests: ${bookingData.guests}`,
+                    title: 'New Booking Confirmed!',
+                    body: `A new booking has been made for your listing "${data.title}".`,
+                    data: {
+                        type: 'booking_confirmation',
+                        listing_id: bookingData.listing_id,
+                        listing_title: data.title,
+                        host_id: data.host_id,
+                        booking_id: bookingId,
+                        check_in: bookingData.check_in_date,
+                        check_out: bookingData.check_out_date,
+                        guests: bookingData.guests
+                    }
+                };
+                await sendBookingNotification(payload);
                 
                 // Show success message
                 alert('Booking confirmed! You will be redirected to messages to chat with your host.');
