@@ -3,7 +3,6 @@ import { VAPID_PUBLIC_KEY, API_BASE } from './config';
 export async function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return null;
   if (window.location.protocol !== 'https:') return null;
-  // Do not register on localhost or loopback in any build
   const host = window.location.hostname;
   if (
     host === 'localhost' ||

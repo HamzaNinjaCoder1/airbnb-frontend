@@ -312,9 +312,11 @@ const initializeMessaging = async () => {
 		socketService.joinRoom(activeConversationId)
 		currentRoomRef.current = activeConversationId
 
-		// Listen for real-time incoming messages
+			// Listen for real-time incoming messages
 		const handleIncoming = (newMessage) => {
 			if (!newMessage || typeof newMessage !== 'object') return
+				// Guard: only accept messages for the active room
+				if (parseInt(currentRoomRef.current) !== newMessage.conversation_id) return
 
 			// Update conversation list: latest preview and unread count
 			setConversations(prevConvs => {
@@ -332,14 +334,13 @@ const initializeMessaging = async () => {
 				})
 			})
 
-			// Append to open thread if it's the active room
-			if (parseInt(currentRoomRef.current) === newMessage.conversation_id) {
+				// Reconcile into thread: merge by server id or optimistic client_temp_id; otherwise append
 				setMessages(prev => {
-					// 1) If same server id already exists, ignore
+					// If message already exists by server id, ignore
 					if (newMessage.id && prev.some(existing => existing.id === newMessage.id)) {
 						return prev
 					}
-					// 2) If this is a server echo of our optimistic message, merge/replace
+					// Replace optimistic message if client_temp_id matches
 					if (newMessage.client_temp_id) {
 						const idx = prev.findIndex(m => m.client_temp_id === newMessage.client_temp_id)
 						if (idx !== -1) {
@@ -348,19 +349,9 @@ const initializeMessaging = async () => {
 							return updated
 						}
 					}
-					// 3) If incoming message has same text, sender and close timestamp as the last optimistic one, drop it
-					const last = prev[prev.length - 1]
-					if (
-						last && last.status === 'sending' &&
-						last.sender_id === newMessage.sender_id &&
-						last.message_text === newMessage.message_text
-					) {
-						return prev
-					}
 					const enriched = (newMessage.sender_id !== user.id) ? { ...newMessage, status: newMessage.status || 'seen' } : newMessage
 					return [...prev, enriched]
 				})
-			}
 		}
 
 		socketService.onMessage(handleIncoming)
@@ -437,7 +428,7 @@ const initializeMessaging = async () => {
 					const idx = prev.findIndex(m => m.client_temp_id === clientTempId)
 					if (idx === -1) return prev
 					const updated = [...prev]
-					updated[idx] = { ...updated[idx], ...resp.message, status: resp.message.status || 'sent' }
+					updated[idx] = { ...updated[idx], ...resp.message, client_temp_id: clientTempId, status: resp.message.status || 'sent' }
 					return updated
 				})
 			}
