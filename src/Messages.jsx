@@ -4,7 +4,7 @@ import ListingHader from './ListingHader'
 import { useAuth } from './AuthContext'
 import messagingService from './services/messagingService'
 import socketService from './services/socketService'
-import { subscribeUser, checkNotificationPermission, requestNotificationPermission } from './pushService'
+// Removed legacy pushService usage
 import UserIcon from './UserIcon'
 
 // Professional Airbnb-style messages page with real-time messaging
@@ -161,6 +161,7 @@ function Messages() {
 	const [messageInput, setMessageInput] = useState('')
 	const [showConversation, setShowConversation] = useState(false) // Mobile state
 	const [isTyping, setIsTyping] = useState(false)
+	const [isSending, setIsSending] = useState(false)
 	const [searchQuery, setSearchQuery] = useState('')
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState(null)
@@ -236,12 +237,9 @@ function Messages() {
 	)
 
 	// Initialize messaging system
-	const initializeMessaging = async () => {
+const initializeMessaging = async () => {
 		try {
 			setLoading(true)
-			
-			// Check notification permission
-			await checkAndSetupNotifications()
 			
 			// Connect to socket
 			socketService.connect()
@@ -260,33 +258,7 @@ function Messages() {
 		}
 	}
 
-	// Check and setup push notifications
-	const checkAndSetupNotifications = async () => {
-		try {
-			const permissionStatus = await checkNotificationPermission()
-			setNotificationPermission(permissionStatus)
-			
-			if (permissionStatus.supported && !permissionStatus.granted) {
-				// Request permission if not granted
-				const result = await requestNotificationPermission()
-				if (result.success) {
-					// Subscribe to push notifications
-					const subscribeResult = await subscribeUser()
-					if (!subscribeResult.success) {
-						console.error('Failed to subscribe to push notifications:', subscribeResult.error)
-					}
-				}
-			} else if (permissionStatus.supported && permissionStatus.granted) {
-				// Already granted, subscribe to push notifications
-				const subscribeResult = await subscribeUser()
-				if (!subscribeResult.success) {
-					console.error('Failed to subscribe to push notifications:', subscribeResult.error)
-				}
-			}
-		} catch (error) {
-			console.error('Error setting up notifications:', error)
-		}
-	}
+	// Push notifications are bootstrapped globally; no per-page setup here
 
 	// Load conversations from API
 	const loadConversations = async () => {
@@ -294,7 +266,6 @@ function Messages() {
 			const response = await messagingService.getConversations(user.id)
 			if (response.success) {
 				setConversations(response.conversations)
-				// If no active conversation, select the first one
 				if (!activeConversationId && response.conversations.length > 0) {
 					setActiveConversationId(response.conversations[0].id)
 					loadMessages(response.conversations[0].id)
@@ -305,14 +276,11 @@ function Messages() {
 			setError('Failed to load conversations')
 		}
 	}
-
-	// Load messages for a conversation
 	const loadMessages = async (conversationId) => {
 		try {
 			const response = await messagingService.getMessages(conversationId)
 			if (response.success) {
 				setMessages(response.messages || [])
-				// Room join/leave handled in effect tied to activeConversationId
 				currentRoomRef.current = conversationId
 			}
 		} catch (error) {
@@ -321,9 +289,7 @@ function Messages() {
 		}
 	}
 
-	// Set up socket event listeners (typing only)
 	const setupSocketListeners = () => {
-		// Listen for typing indicators referencing currentRoomRef to avoid stale closures
 		socketService.onTyping((data) => {
 			if (data.conversationId === parseInt(currentRoomRef.current)) {
 				setIsTyping(true)
@@ -426,8 +392,9 @@ function Messages() {
 
 	const handleSend = async () => {
 		const text = messageInput.trim()
-		if (!text || !activeConversationId || !activeConversation) return
+		if (!text || !activeConversationId || !activeConversation || isSending) return
 
+		setIsSending(true)
 		try {
 			// Optimistic message with temporary client id
 			const clientTempId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2)}`
@@ -467,9 +434,6 @@ function Messages() {
 			}
 			setMessageInput('')
 
-			// Emit message via socket so other participants get it instantly
-			socketService.emitMessage(messageData)
-			
 			// Stop typing indicator
 			socketService.emitStopTyping(activeConversationId)
 			
@@ -478,6 +442,8 @@ function Messages() {
 			// Mark optimistic message as failed
 			setMessages(prev => prev.map(m => m.status === 'sending' ? { ...m, status: 'failed' } : m))
 			setError('Failed to send message')
+		} finally {
+			setIsSending(false)
 		}
 	}
 
@@ -812,7 +778,7 @@ function Messages() {
 									}}
 										placeholder="Type a message..."
 										className="flex-1 bg-transparent text-sm focus:outline-none placeholder-gray-500"
-									onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+									onKeyPress={(e) => e.key === 'Enter' && !isSending && handleSend()}
 								/>
 									<button className="p-2 hover:bg-gray-200 rounded-full transition-colors">
 										<svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -821,7 +787,7 @@ function Messages() {
 									</button>
 									<button 
 										onClick={handleSend} 
-										disabled={!messageInput.trim()}
+										disabled={!messageInput.trim() || isSending}
 										className="inline-flex items-center justify-center rounded-full w-10 h-10 bg-black/90 backdrop-blur-sm hover:bg-black disabled:bg-gray-300 text-white transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-none disabled:cursor-not-allowed"
 									>
 										<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1054,11 +1020,11 @@ function Messages() {
 										}}
 										placeholder="Type a message..."
 										className="flex-1 bg-transparent text-sm focus:outline-none placeholder-gray-500"
-										onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+										onKeyPress={(e) => e.key === 'Enter' && !isSending && handleSend()}
 									/>
 									<button 
 										onClick={handleSend} 
-										disabled={!messageInput.trim()}
+										disabled={!messageInput.trim() || isSending}
 										className="inline-flex items-center justify-center rounded-full w-10 h-10 bg-black/90 backdrop-blur-sm hover:bg-black disabled:bg-gray-300 text-white transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-none disabled:cursor-not-allowed"
 									>
 										<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

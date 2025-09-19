@@ -1,3 +1,4 @@
+// Production service worker for push notifications
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
@@ -5,68 +6,38 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
-const FRONTEND_ORIGIN = 'https://airbnb-frontend-sooty.vercel.app';
 
-self.addEventListener("push", function (event) {
-    if (!event.data) return;
-  
-    const data = event.data.json();
-  
-    event.waitUntil(
-      self.registration.showNotification(data.title || "New Message", {
-        body: data.body,
-        icon: data.icon || "/icons/chat-icon.png",
-        image: data.image || data.listingImage,
-        badge: data.badge || "/icons/badge-icon.png",
-        tag: data.tag || "booking-notification",
-        requireInteraction: data.requireInteraction || false,
-        actions: data.actions || [
-          {
-            action: "view",
-            title: "View Details",
-            icon: "/icons/view-icon.png"
-          },
-          {
-            action: "dismiss",
-            title: "Dismiss",
-            icon: "/icons/dismiss-icon.png"
-          }
-        ],
-        data: data.data || {},
-      })
-    );
-  });
-  
+self.addEventListener('push', (event) => {
+  try {
+    const data = event.data ? event.data.json() : {};
+    const title = data.title || 'Notification';
+    const options = {
+      body: data.body || '',
+      icon: data.icon || '/icons/notification.svg',
+      badge: data.badge || '/icons/notification.svg',
+      data: data.data || {},
+      requireInteraction: !!data.requireInteraction,
+      silent: !!data.silent,
+      actions: data.actions || []
+    };
+    event.waitUntil(self.registration.showNotification(title, options));
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error('SW push error:', e);
+  }
+});
 
-self.addEventListener("notificationclick", function (event) {
-    event.notification.close();
-  
-    if (event.action === "dismiss") {
-      return;
-    }
-  
-    // Always use production frontend origin
-    const origin = FRONTEND_ORIGIN;
-    const nData = event.notification.data || {};
-    
-    if (nData.conversation_id) {
-      event.waitUntil(
-        clients.openWindow(`${origin}/messages?conversationId=${nData.conversation_id}`)
-      );
-    } else if (nData.listing_id) {
-      event.waitUntil(
-        clients.openWindow(`${origin}/products/${nData.listing_id}`)
-      );
-    } else if (nData.type === 'booking_confirmation') {
-      // For booking notifications, always redirect to messages page
-      event.waitUntil(
-        clients.openWindow(`${origin}/messages`)
-      );
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification && event.notification.data && event.notification.data.url)
+    || '/messages';
+  event.waitUntil((async () => {
+    const allClients = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' });
+    const client = allClients.find(c => c.url.includes(url));
+    if (client) {
+      return client.focus();
     } else {
-      // Default redirect to messages page
-      event.waitUntil(
-        clients.openWindow(`${origin}/messages`)
-      );
+      return self.clients.openWindow(url);
     }
-  });
-  
+  })());
+});

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from './api';
-import { subscribeUser } from './pushService';
+// Removed legacy subscribeUser import
 
 const AuthContext = createContext();
 
@@ -21,15 +21,7 @@ export const AuthProvider = ({ children }) => {
         checkAuthStatus();
     }, []);
 
-    useEffect(() => {
-        if (isAuthenticated) {
-            (async () => {
-                try {
-                    await subscribeUser();
-                } catch (_) {}
-            })();
-        }
-    }, [isAuthenticated]);
+    // Push subscription handled by centralized bootstrap now
 
     const checkAuthStatus = async () => {
         try {
@@ -53,9 +45,7 @@ export const AuthProvider = ({ children }) => {
                 password
             }, { withCredentials: true });
             await checkAuthStatus();
-            try {
-                await subscribeUser();
-            } catch (_) {}
+            // subscription handled by bootstrap
             return { success: true };
         } catch (error) {
             return { 
@@ -69,9 +59,7 @@ export const AuthProvider = ({ children }) => {
         try {
             await api.post("/api/users/register", userData, { withCredentials: true });
             await checkAuthStatus();
-            try {
-                await subscribeUser();
-            } catch (_) {}
+            // subscription handled by bootstrap
             return { success: true };
         } catch (error) {
             return { 

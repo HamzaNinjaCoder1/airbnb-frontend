@@ -5,9 +5,13 @@ import App from './App.jsx'
 import "slick-carousel/slick/slick.css"
 import "slick-carousel/slick/slick-theme.css"
 // axios defaults are centralized in src/api.js
+import { setupNotifications } from './push'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <App />
   </StrictMode>,
 )
+if (import.meta.env.PROD && window.location.protocol === 'https:') {
+  setupNotifications().catch(() => {});
+}
