@@ -1,14 +1,6 @@
-/**
- * Utility functions for testing push notifications
- * Only available in development mode
- */
-
 import { sendBookingNotification } from '../services/notificationService';
 
-/**
- * Test booking notification with sample data
- * Only works in development mode
- */
+
 export async function testBookingNotification() {
   if (import.meta.env.PROD) {
     console.warn('Notification testing is only available in development mode');
