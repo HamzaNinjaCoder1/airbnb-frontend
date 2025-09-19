@@ -1,4 +1,3 @@
-// Production service worker for push notifications
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
@@ -22,7 +21,6 @@ self.addEventListener('push', (event) => {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    // eslint-disable-next-line no-console
     console.error('SW push error:', e);
   }
 });

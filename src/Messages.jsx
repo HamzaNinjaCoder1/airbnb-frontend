@@ -335,11 +335,11 @@ const initializeMessaging = async () => {
 			// Append to open thread if it's the active room
 			if (parseInt(currentRoomRef.current) === newMessage.conversation_id) {
 				setMessages(prev => {
-					// If message already exists by id, ignore
+					// 1) If same server id already exists, ignore
 					if (newMessage.id && prev.some(existing => existing.id === newMessage.id)) {
 						return prev
 					}
-					// If matches an optimistic temp by client_temp_id, replace it
+					// 2) If this is a server echo of our optimistic message, merge/replace
 					if (newMessage.client_temp_id) {
 						const idx = prev.findIndex(m => m.client_temp_id === newMessage.client_temp_id)
 						if (idx !== -1) {
@@ -347,6 +347,15 @@ const initializeMessaging = async () => {
 							updated[idx] = { ...updated[idx], ...newMessage, status: newMessage.status || 'sent' }
 							return updated
 						}
+					}
+					// 3) If incoming message has same text, sender and close timestamp as the last optimistic one, drop it
+					const last = prev[prev.length - 1]
+					if (
+						last && last.status === 'sending' &&
+						last.sender_id === newMessage.sender_id &&
+						last.message_text === newMessage.message_text
+					) {
+						return prev
 					}
 					const enriched = (newMessage.sender_id !== user.id) ? { ...newMessage, status: newMessage.status || 'seen' } : newMessage
 					return [...prev, enriched]
