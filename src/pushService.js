@@ -1,7 +1,7 @@
 import api from "./api";
 
 const VAPID_PUBLIC_KEY =
-  "BEl62iUYgUivxIkv69yViEuiBIa40HI8w0-8jWvJ3_sjXvOwQ63YPgZ_RxI3Ew5_S7F5URD0DXfq2d5eT7Y6B2A";
+  "BP0OJzfIv3gutn2bu2VbP3Y062ZYRhtLNiYxxDe_OM1aueh7bJKcx5S72UzsRs40kFsukwOxfV13oTUJo-3vOFU";
 
 function isProductionOrigin() {
   try {
