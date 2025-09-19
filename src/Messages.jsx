@@ -467,7 +467,6 @@ function Messages() {
 			}
 
 			const resp = await messagingService.sendMessage(messageData)
-			// If API returns the saved message, reconcile status immediately
 			if (resp && resp.success && resp.message) {
 				setMessages(prev => {
 					const idx = prev.findIndex(m => m.client_temp_id === clientTempId)
@@ -478,35 +477,23 @@ function Messages() {
 				})
 			}
 			setMessageInput('')
-
-			// Emit message via socket so other participants get it instantly
 			socketService.emitMessage(messageData)
-			
-			// Stop typing indicator
 			socketService.emitStopTyping(activeConversationId)
 			
 		} catch (error) {
 			console.error('Error sending message:', error)
-			// Mark only this optimistic message as failed
-			setMessages(prev => prev.map(m => (m.client_temp_id === undefined || m.client_temp_id !== undefined) && m.client_temp_id === (m.client_temp_id && m.client_temp_id) ? m : m))
-			setMessages(prev => prev.map(m => m.client_temp_id === (m.client_temp_id) ? m : m))
-			setMessages(prev => prev.map(m => m.client_temp_id === (m.client_temp_id) ? m : m))
-			setMessages(prev => prev.map(m => m.client_temp_id === (m.client_temp_id) ? m : m))
+			setMessages(prev => prev.map(m => m.client_temp_id === clientTempId ? { ...m, status: 'failed' } : m))
 			setError('Failed to send message')
 		}
 	}
-
-	// When viewing a conversation, mark incoming messages as seen locally
 	useEffect(() => {
 		if (!activeConversationId || !user) return
-		// Mark messages from other user as seen
 		setMessages(prev => prev.map(m => {
 			if (m.conversation_id === parseInt(activeConversationId, 10) && m.sender_id !== user.id) {
 				return { ...m, status: 'seen' }
 			}
 			return m
 		}))
-		// Clear unread count for the opened conversation
 		setConversations(prev => prev.map(c => c.id === parseInt(activeConversationId, 10) ? { ...c, unreadCount: 0 } : c))
 	}, [activeConversationId, user])
 
@@ -526,8 +513,6 @@ function Messages() {
 			socketService.emitStopTyping(activeConversationId)
 		}, 1000)
 	}
-
-	// Filter conversations based on search query
 	const filteredConversations = useMemo(() => {
 		if (!searchQuery.trim()) return conversations
 		const q = searchQuery.toLowerCase()
@@ -536,8 +521,6 @@ function Messages() {
 			(typeof conv.latestMessage?.message_text === 'string' && conv.latestMessage.message_text.toLowerCase().includes(q))
 		)
 	}, [conversations, searchQuery])
-
-	// Format time for display
 	const formatTime = (timestamp) => {
 		if (!timestamp) return ''
 		const date = new Date(timestamp)
