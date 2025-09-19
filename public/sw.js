@@ -7,35 +7,38 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('push', (event) => {
-  try {
-    const data = event.data ? event.data.json() : {};
-    const title = data.title || 'Notification';
-    const options = {
-      body: data.body || '',
-      icon: data.icon || '/icons/notification.svg',
-      badge: data.badge || '/icons/notification.svg',
-      data: data.data || {},
-      requireInteraction: !!data.requireInteraction,
-      silent: !!data.silent,
-      actions: data.actions || []
-    };
-    event.waitUntil(self.registration.showNotification(title, options));
-  } catch (e) {
-    console.error('SW push error:', e);
-  }
+  let data = {};
+  try { 
+    data = event.data ? event.data.json() : {}; 
+  } catch (_) {}
+
+  const title = data.title || 'Notification';
+  const body = data.body || '';
+  const icon = data.icon || '/icons/notification.svg';
+  const badge = data.badge || '/icons/notification.svg';
+
+  const options = {
+    body,
+    icon,
+    badge,
+    data: data.data || {},
+    tag: (data.data && data.data.kind) || 'generic',
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = (event.notification && event.notification.data && event.notification.data.url)
-    || '/messages';
-  event.waitUntil((async () => {
-    const allClients = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' });
-    const client = allClients.find(c => c.url.includes(url));
-    if (client) {
-      return client.focus();
-    } else {
-      return self.clients.openWindow(url);
-    }
-  })());
+  const url = (event.notification.data && event.notification.data.url) || '/messages';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientsArr) => {
+      const client = clientsArr.find(c => c.url.includes(url) || c.visibilityState === 'visible');
+      if (client) { 
+        client.focus(); 
+        client.navigate(url); 
+        return; 
+      }
+      return clients.openWindow(url);
+    })
+  );
 });

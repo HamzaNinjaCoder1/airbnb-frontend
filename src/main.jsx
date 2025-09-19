@@ -6,6 +6,10 @@ import "slick-carousel/slick/slick.css"
 import "slick-carousel/slick/slick-theme.css"
 // axios defaults are centralized in src/api.js
 import { setupNotifications } from './push'
+// Import notification test utilities in development
+if (!import.meta.env.PROD) {
+  import('./utils/notificationTest.js')
+}
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

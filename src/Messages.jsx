@@ -312,11 +312,9 @@ const initializeMessaging = async () => {
 		socketService.joinRoom(activeConversationId)
 		currentRoomRef.current = activeConversationId
 
-			// Listen for real-time incoming messages
+		// Listen for real-time incoming messages
 		const handleIncoming = (newMessage) => {
 			if (!newMessage || typeof newMessage !== 'object') return
-				// Guard: only accept messages for the active room
-				if (parseInt(currentRoomRef.current) !== newMessage.conversation_id) return
 
 			// Update conversation list: latest preview and unread count
 			setConversations(prevConvs => {
@@ -334,13 +332,14 @@ const initializeMessaging = async () => {
 				})
 			})
 
-				// Reconcile into thread: merge by server id or optimistic client_temp_id; otherwise append
+			// Append to open thread if it's the active room
+			if (parseInt(currentRoomRef.current) === newMessage.conversation_id) {
 				setMessages(prev => {
-					// If message already exists by server id, ignore
+					// If message already exists by id, ignore
 					if (newMessage.id && prev.some(existing => existing.id === newMessage.id)) {
 						return prev
 					}
-					// Replace optimistic message if client_temp_id matches
+					// If matches an optimistic temp by client_temp_id, replace it
 					if (newMessage.client_temp_id) {
 						const idx = prev.findIndex(m => m.client_temp_id === newMessage.client_temp_id)
 						if (idx !== -1) {
@@ -352,6 +351,7 @@ const initializeMessaging = async () => {
 					const enriched = (newMessage.sender_id !== user.id) ? { ...newMessage, status: newMessage.status || 'seen' } : newMessage
 					return [...prev, enriched]
 				})
+			}
 		}
 
 		socketService.onMessage(handleIncoming)
@@ -428,7 +428,7 @@ const initializeMessaging = async () => {
 					const idx = prev.findIndex(m => m.client_temp_id === clientTempId)
 					if (idx === -1) return prev
 					const updated = [...prev]
-					updated[idx] = { ...updated[idx], ...resp.message, client_temp_id: clientTempId, status: resp.message.status || 'sent' }
+					updated[idx] = { ...updated[idx], ...resp.message, status: resp.message.status || 'sent' }
 					return updated
 				})
 			}

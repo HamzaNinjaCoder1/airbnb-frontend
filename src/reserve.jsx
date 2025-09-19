@@ -584,16 +584,24 @@ function Reserve({ selectedDates, setSelectedDates }) {
 
             if (response.data.success) {
                 // Send notification to host
-                await sendBookingNotification(
-                    user.id,
-                    data.host_id,
-                    bookingData.listing_id,
-                    bookingData.listing_id,
-                    data.title,
-                    bookingData.check_in_date,
-                    bookingData.check_out_date,
-                    bookingData.guests
-                );
+                try {
+                    await sendBookingNotification(
+                        data.host_id,
+                        bookingData.listing_id,
+                        'New Booking Confirmed!',
+                        `A new booking was made for ${data.title}`,
+                        {
+                            check_in: bookingData.check_in_date,
+                            check_out: bookingData.check_out_date,
+                            guests: bookingData.guests,
+                            url: `${window.location.origin}/messages`
+                        }
+                    );
+                } catch (notificationError) {
+                    // eslint-disable-next-line no-console
+                    console.error('Failed to send booking notification:', notificationError);
+                    // Don't fail the booking if notification fails
+                }
                 
                 // Show success message
                 alert('Booking confirmed! You will be redirected to messages to chat with your host.');
