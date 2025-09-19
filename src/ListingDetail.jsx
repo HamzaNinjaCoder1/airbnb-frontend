@@ -52,6 +52,14 @@ const ListingDetail = () => {
     return `https://www.google.com/maps?q=${query}&output=embed`;
   }, [fullAddress, data]);
 
+  // Define before first use to avoid temporal dead zone in production builds
+  function getImageUrl(img) {
+    if (!img) return '';
+    const url = typeof img === 'object' ? (img.image_url || '') : img;
+    if (!url) return '';
+    return url.startsWith('http') ? url : `${UPLOADS_BASE_URL}${url}`;
+  }
+
   const galleryImages = useMemo(() => {
     const resolved = (Array.isArray(images) ? images : [])
       .map((im) => getImageUrl(im))
@@ -61,13 +69,6 @@ const ListingDetail = () => {
     );
     return [...resolved, ...placeholders].slice(0, 5);
   }, [images]);
-
-  const getImageUrl = (img) => {
-    if (!img) return '';
-    const url = typeof img === 'object' ? (img.image_url || '') : img;
-    if (!url) return '';
-    return url.startsWith('http') ? url : `${UPLOADS_BASE_URL}${url}`;
-  };
 
   useEffect(() => {
     const fetchDetails = async () => {

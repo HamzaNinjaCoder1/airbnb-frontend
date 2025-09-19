@@ -536,8 +536,6 @@ function Messages() {
 			return date.toLocaleDateString([], { month: 'short', day: 'numeric' })
 		}
 	}
-
-	// Check if message is from current user
 	const isMessageFromMe = (message) => {
 		if (!user) return false
 		return message.sender_id === user.id
