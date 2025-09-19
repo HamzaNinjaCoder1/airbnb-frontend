@@ -42,6 +42,18 @@ const ListingDetail = () => {
 
   const price = useMemo(() => Number(data?.price_per_night || 0), [data]);
 
+  const fullAddress = useMemo(() => {
+    const parts = [data?.address, data?.city, data?.country].filter(Boolean);
+    return parts.join(', ');
+  }, [data]);
+
+  const mapSrc = useMemo(() => {
+    const query = encodeURIComponent(fullAddress || data?.city || '');
+    // Using Google Maps embed without API key for a place search
+    // Falls back gracefully if address is missing
+    return `https://www.google.com/maps?q=${query}&output=embed`;
+  }, [fullAddress, data]);
+
   const getImageUrl = (img) => {
     if (!img) return '';
     // Support objects with image_url or plain strings
@@ -148,7 +160,6 @@ const ListingDetail = () => {
           next[index] = updatedImage;
           setImages(next);
         } else {
-          // If not found, fall back to syncing all images
           setImages(updatedListing.images);
         }
         setData((d) => ({ ...(d || {}), ...updatedListing }));
@@ -200,10 +211,7 @@ const ListingDetail = () => {
     <div className="min-h-screen bg-white">
       <div className="flex items-center justify-between px-6 py-4 border-b bg-white/70 backdrop-blur">
         <button onClick={() => navigate(hostIdFromQs ? `/listings/${hostIdFromQs}` : '/listings')} className="px-3 py-2 rounded-lg border hover:bg-gray-50">Back</button>
-        <div className="flex items-center gap-3">
-          <div className="text-lg font-semibold truncate max-w-[16rem]">{data?.title || 'Listing details'}</div>
-          <div className="text-sm text-gray-600">${Number(data?.price_per_night || 0)}</div>
-        </div>
+        <div />
         <button onClick={handleSave} disabled={saving} className={`px-4 py-2 rounded-lg ${saving ? 'bg-black/30 text-white/70' : 'bg-black text-white hover:bg-gray-900'}`}>{saving ? 'Saving...' : 'Save changes'}</button>
       </div>
 
@@ -213,12 +221,17 @@ const ListingDetail = () => {
         </div>
       )}
 
-      <div className="max-w-6xl mx-auto px-6 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="max-w-6xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
+          <div className="space-y-1">
+            <div className="text-2xl font-semibold tracking-tight">{data?.title || 'Listing details'}</div>
+            <div className="text-sm text-gray-500">{fullAddress || 'No address provided'}</div>
+          </div>
+
           <div>
             <div className="text-base font-medium mb-2">Photos</div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {Array.from({ length: 5 }).map((_, i) => {
+              {Array.from({ length: 6 }).map((_, i) => {
                 const img = images[i];
                 return (
                   <div key={i} className="relative group rounded-xl overflow-hidden bg-gray-100 h-40">
@@ -233,17 +246,25 @@ const ListingDetail = () => {
                   </div>
                 );
               })}
-              <div className="relative group rounded-xl overflow-hidden bg-gray-50 border border-dashed border-gray-300 h-40 flex items-center justify-center">
-                <label className="px-4 py-2 rounded-lg bg-black text-white hover:bg-gray-900 cursor-pointer text-sm">Add photo
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleReplaceImage(images.length, e.target.files[0])} />
-                </label>
-              </div>
             </div>
           </div>
 
           <div className="space-y-2">
             <EditableField label="Title" value={data?.title} onChange={(v) => setData((d) => ({ ...d, title: v }))} />
             <EditableField label="Description" value={data?.description} onChange={(v) => setData((d) => ({ ...d, description: v }))} type="textarea" />
+          </div>
+
+          <div className="border rounded-xl p-4">
+            <div className="text-base font-medium mb-3">Map</div>
+            <div className="rounded-lg overflow-hidden border">
+              <iframe
+                title="Listing location map"
+                src={mapSrc}
+                className="w-full h-72"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
           </div>
         </div>
 
@@ -258,7 +279,6 @@ const ListingDetail = () => {
             <div className="text-base font-medium">Location</div>
             <EditableField label="Address" value={data?.address} onChange={(v) => setData((d) => ({ ...d, address: v }))} />
             <EditableField label="City" value={data?.city} onChange={(v) => setData((d) => ({ ...d, city: v }))} />
-            <EditableField label="State/Province" value={data?.state || data?.province} onChange={(v) => setData((d) => ({ ...d, state: v, province: v }))} />
             <EditableField label="Country" value={data?.country} onChange={(v) => setData((d) => ({ ...d, country: v }))} />
           </div>
         </div>
